@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply font-mono;
+  }
+
+  body {
+    @apply bg-off-white text-near-black antialiased;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+  }
+
+  /* Ensure monospace is used throughout */
+  h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select {
+    @apply font-mono;
+  }
+}
