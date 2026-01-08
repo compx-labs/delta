@@ -10,6 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@algorandfoundation/algokit-utils": "^9.2.0",
+    "@tanstack/react-query": "^5.90.16",
+    "@txnlab/use-wallet-react": "^4.3.1",
+    "algosdk": "^3.5.2",
+    "axios": "^1.13.2",
+    "framer-motion": "^12.24.12",
+    "ldrs": "^1.1.9",
+    "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.11.0"

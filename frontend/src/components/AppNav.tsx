@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
+import WalletButton from './WalletButton'
 
 export function AppNav() {
   const location = useLocation()
@@ -15,6 +16,7 @@ export function AppNav() {
   const navItems = [
     { path: '/pools', label: 'Pools' },
     { path: '/create', label: 'Create' },
+    { path: '/manage', label: 'Manage' },
     { path: '/docs', label: 'Docs' },
   ]
 
@@ -48,9 +50,7 @@ export function AppNav() {
           </div>
           {/* Right side buttons */}
           <div className="flex items-center gap-4">
-            <button className="px-4 py-2 bg-transparent border border-mid-grey/30 text-off-white font-medium hover:bg-amber/90 transition-colors text-sm">
-              Connect wallet
-            </button>
+            <WalletButton />
             {/* Mobile Hamburger Menu */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

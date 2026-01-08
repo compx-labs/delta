@@ -49,3 +49,24 @@ export interface PoolFilters {
   search?: string
 }
 
+export interface ManagePoolListItem {
+  id: string
+  displayName: string
+  type: PoolType
+  status: PoolStatus
+  stakers: number
+  apr: number | null
+  apy: number | null
+  rewardsRemaining: Array<{ symbol: string; amount: number }>
+  endDate: string | null
+  createdAt: string
+  stakeAsset: { symbol: string; id: string }
+  rewardAssets: Array<{ symbol: string; id: string }>
+}
+
+export interface ManagePoolDetail extends ManagePoolListItem {
+  creator: string
+  contractRef: { appId?: string; address?: string }
+  schedule: { startTime: string | null; endTime: string | null }
+}
+
