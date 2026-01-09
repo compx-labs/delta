@@ -9,7 +9,7 @@ import { useNetwork } from "../context/networkContext";
 const WalletConnectionMessage: React.FC = () => {
   const { isTestnet } = useNetwork();
   return (
-    <p className="text-sm text-slate-grey">
+    <p className="text-sm text-mid-grey">
       Connect your wallet to interact with Delta on Algorand {isTestnet ? 'testnet' : 'mainnet'}
     </p>
   );
@@ -77,14 +77,14 @@ export const WalletConnectionModal: React.FC = () => {
             transition={{ duration: 0.2 }}
           >
             {/* Modal container */}
-            <div className="relative bg-off-white border border-mid-grey/30 p-6">
+            <div className="relative bg-near-black border border-mid-grey/30 p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-near-black" />
+                    <Wallet className="w-5 h-5 text-off-white" />
                   </div>
-                  <h3 className="text-lg font-medium text-near-black">
+                  <h3 className="text-lg font-medium text-off-white">
                     Connect Wallet
                   </h3>
                 </div>
@@ -93,7 +93,7 @@ export const WalletConnectionModal: React.FC = () => {
                   onClick={handleClose}
                   className="p-2 hover:bg-mid-grey/10 transition-colors"
                 >
-                  <X className="w-5 h-5 text-slate-grey" />
+                  <X className="w-5 h-5 text-mid-grey" />
                 </button>
               </div>
 
@@ -116,7 +116,7 @@ export const WalletConnectionModal: React.FC = () => {
                     whileTap={{ scale: 0.99 }}
                   >
                     {/* Button content */}
-                    <div className="relative bg-off-white border border-mid-grey/30 p-4 hover:border-amber hover:bg-amber/5 transition-all">
+                    <div className="relative bg-near-black border border-mid-grey/30 p-4 hover:border-amber transition-all">
                       <div className="flex items-center gap-4">
                         <div className="relative">
                           <div className="w-10 h-10 flex items-center justify-center border border-mid-grey/30">
@@ -129,10 +129,10 @@ export const WalletConnectionModal: React.FC = () => {
                         </div>
                         
                         <div className="flex-1 text-left">
-                          <h4 className="font-medium text-near-black group-hover:text-amber transition-colors">
+                          <h4 className="font-medium text-off-white group-hover:text-amber transition-colors">
                             {wallet.metadata.name}
                           </h4>
-                          <p className="text-sm text-slate-grey">
+                          <p className="text-sm text-mid-grey">
                             Connect via {wallet.metadata.name}
                           </p>
                         </div>
@@ -146,7 +146,7 @@ export const WalletConnectionModal: React.FC = () => {
               <div className="text-center">
                 <button
                   onClick={handleClose}
-                  className="px-6 py-2 border border-mid-grey/30 hover:border-slate-grey hover:text-slate-grey transition-colors"
+                  className="px-6 py-2 border border-mid-grey/30 text-off-white hover:border-mid-grey hover:text-mid-grey transition-colors"
                 >
                   Cancel
                 </button>

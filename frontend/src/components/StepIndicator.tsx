@@ -1,3 +1,5 @@
+import React from 'react'
+
 interface StepIndicatorProps {
   steps: string[]
   currentStep: number
@@ -5,57 +7,41 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
   return (
-    <div className="flex items-center justify-between mb-8">
-      {steps.map((step, index) => {
-        const stepNum = index + 1
-        const isActive = stepNum === currentStep
-        const isCompleted = stepNum < currentStep
-        
-        return (
-          <div key={stepNum} className="flex items-center flex-1">
-            <div className="flex flex-col items-center flex-1">
-              <div className="flex items-center w-full">
-                {/* Step Circle */}
-                <div
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'border-amber bg-amber text-off-white'
-                      : isCompleted
-                      ? 'border-amber bg-amber text-off-white'
-                      : 'border-mid-grey/30 text-mid-grey'
-                  }`}
-                >
-                  {isCompleted ? '✓' : stepNum}
-                </div>
-                
-                {/* Connector Line */}
-                {index < steps.length - 1 && (
-                  <div
-                    className={`flex-1 h-0.5 mx-2 ${
-                      isCompleted ? 'bg-amber' : 'bg-mid-grey/30'
-                    }`}
-                  />
-                )}
-              </div>
-              
-              {/* Step Label */}
-              <div className="mt-2 text-xs text-center">
-                <span
-                  className={
-                    isActive
-                      ? 'text-amber font-medium'
-                      : isCompleted
-                      ? 'text-mid-grey'
-                      : 'text-mid-grey'
-                  }
-                >
-                  {step}
-                </span>
-              </div>
+    <div className="relative flex items-center mb-8 w-full">
+      {/* Background line spanning full width */}
+      <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-mid-grey/30 -translate-y-1/2"></div>
+      
+      {/* Progress line */}
+      <div 
+        className="absolute left-0 top-1/2 h-0.5 bg-amber -translate-y-1/2 transition-all duration-300"
+        style={{ 
+          width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` 
+        }}
+      ></div>
+      
+      {/* Step circles */}
+      <div className="relative flex items-center justify-between w-full">
+        {steps.map((step, index) => {
+          const stepNum = index + 1
+          const isActive = stepNum === currentStep
+          const isCompleted = stepNum < currentStep
+          
+          return (
+            <div
+              key={stepNum}
+              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors flex-shrink-0 relative z-10 ${
+                isActive
+                  ? 'border-amber bg-amber text-off-white'
+                  : isCompleted
+                  ? 'border-amber bg-amber text-off-white'
+                  : 'border-mid-grey/30 bg-near-black text-off-white'
+              }`}
+            >
+              {isCompleted ? '✓' : stepNum}
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }

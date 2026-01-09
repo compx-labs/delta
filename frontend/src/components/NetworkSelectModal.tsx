@@ -67,26 +67,23 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
             className="relative w-full max-w-lg mx-4"
           >
             {/* Modal Panel */}
-            <div className="bg-noise-dark border-2 border-slate-600 cut-corners-lg p-6 shadow-industrial">
-              {/* Edge lighting */}
-              <div className="absolute inset-0 cut-corners-lg shadow-edge-glow pointer-events-none"></div>
-
+            <div className="bg-near-black border border-mid-grey/30 p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-mono text-xl font-bold text-white uppercase tracking-wide">
-                  Select Network
+                <h2 className="text-xl font-medium text-off-white uppercase tracking-wide">
+                  SELECT NETWORK
                 </h2>
                 <button
                   onClick={onClose}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-slate-500 cut-corners-sm transition-all duration-150"
+                  className="p-2 hover:bg-mid-grey/10 border border-mid-grey/30 transition-colors"
                 >
-                  <X className="w-5 h-5 text-slate-400 hover:text-white" />
+                  <X className="w-5 h-5 text-mid-grey hover:text-off-white" />
                 </button>
               </div>
 
               {/* Description */}
-              <div className="bg-amber-500/10 border border-amber-500/30 cut-corners-sm p-4 mb-6">
-                <p className="text-amber-200 text-sm font-mono">
+              <div className="bg-amber/10 border border-amber/30 p-4 mb-6">
+                <p className="text-amber text-sm">
                   ⚠️ Switching networks will reload the application and disconnect your wallet.
                 </p>
               </div>
@@ -96,47 +93,36 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
                 {networkOptions.map((network) => {
                   const isSelected = selectedNetwork === network.id;
                   const Icon = network.icon;
-                  const colorClasses = network.color === 'purple' 
-                    ? "bg-purple-600/20 border-purple-500 hover:bg-purple-600/30"
-                    : "bg-cyan-600/20 border-cyan-500 hover:bg-cyan-600/30";
                   
                   return (
                     <button
                       key={network.id}
                       onClick={() => handleSelectNetwork(network.id)}
-                      className={`w-full p-4 border-2 cut-corners-sm transition-all duration-150 flex items-center gap-4 ${
+                      className={`w-full p-4 border transition-all duration-150 flex items-center gap-4 ${
                         isSelected
-                          ? colorClasses
-                          : "bg-slate-800 border-slate-600 hover:bg-slate-700 hover:border-slate-500"
+                          ? "bg-near-black border-amber"
+                          : "bg-near-black border-mid-grey/30 hover:border-mid-grey/50"
                       }`}
                     >
                       {/* Network Icon */}
-                      <div
-                        className={`w-12 h-12 flex items-center justify-center border-2 ${
-                          network.color === 'purple'
-                            ? 'bg-purple-600 border-purple-500'
-                            : 'bg-cyan-600 border-cyan-500'
-                        }`}
-                      >
-                        <Icon className="w-6 h-6 text-white" />
+                      <div className="w-12 h-12 flex items-center justify-center border border-mid-grey/30 bg-near-black">
+                        <Icon className="w-6 h-6 text-off-white" />
                       </div>
 
                       {/* Network Info */}
                       <div className="flex-1 text-left">
-                        <h3 className="font-mono font-bold text-white uppercase tracking-wide">
-                          {network.name}
+                        <h3 className="font-medium text-off-white uppercase tracking-wide">
+                          {network.name.toUpperCase()}
                         </h3>
-                        <p className="text-xs text-slate-400 font-mono">
+                        <p className="text-xs text-mid-grey mt-1">
                           {network.description}
                         </p>
                       </div>
 
                       {/* Selected Indicator */}
                       {isSelected && (
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          network.color === 'purple' ? 'bg-purple-500' : 'bg-cyan-500'
-                        }`}>
-                          <Check className="w-4 h-4 text-white" />
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-amber">
+                          <Check className="w-4 h-4 text-near-black" />
                         </div>
                       )}
                     </button>

@@ -216,7 +216,7 @@ export function ManagePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-medium text-off-white mb-2">Manage</h1>
-            <p className="text-mid-grey">Pools you created</p>
+            <p className="text-mid-grey">Pools created by you</p>
           </div>
           
         </div>

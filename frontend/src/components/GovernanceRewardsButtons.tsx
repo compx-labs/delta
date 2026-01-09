@@ -76,8 +76,8 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
   }, [walletAddress]);
 
   return (
-    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700">
-      <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center border-2 border-slate-500 overflow-hidden flex-shrink-0">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-mid-grey/30">
+      <div className="w-12 h-12 bg-near-black rounded-full flex items-center justify-center border-2 border-mid-grey/30 overflow-hidden flex-shrink-0">
         {nfdAvatar ? (
           <img
             src={nfdAvatar}
@@ -111,10 +111,10 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                 "noopener,noreferrer"
               );
             }}
-            className="w-full h-14 px-2 py-2 bg-transparent border-2 border-slate-600   hover:border-cyan-500 transition-all duration-150 shadow-top-highlight flex flex-col items-center justify-center gap-1"
+            className="w-full h-14 px-2 py-2 bg-transparent border-2 border-mid-grey/30 hover:border-amber transition-all duration-150 flex flex-col items-center justify-center gap-1"
           >
             {loadingFluxTier ? (
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-cyan-400 border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-amber border-t-transparent"></div>
             ) : (
               <>
                 <div className="flex items-center justify-center gap-2">
@@ -123,20 +123,20 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                     alt="FLUX"
                     className="w-8 h-8 object-contain rounded-full"
                   />
-                  <span className="text-base font-mono font-bold text-white uppercase tracking-wide">
+                  <span className="text-base font-mono font-bold text-off-white uppercase tracking-wide">
                     T-{fluxTier}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide">
                   GOVERNANCE
                 </span>
               </>
             )}
           </button>
           {/* Tooltip */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-slate-900 border border-cyan-500 text-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
             Your current FLUX tier
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-cyan-500"></div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-amber"></div>
           </div>
         </div>
 
@@ -150,12 +150,12 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                 "noopener,noreferrer"
               );
             }}
-            className={`w-full h-14 bg-transparent border-2 border-slate-600 hover:border-cyan-500 transition-all duration-150 shadow-top-highlight flex flex-col items-center justify-center gap-1 relative overflow-hidden ${
+            className={`w-full h-14 bg-transparent border-2 border-mid-grey/30 hover:border-amber transition-all duration-150 flex flex-col items-center justify-center gap-1 relative overflow-hidden ${
               galaxyCardImageUrl ? "py-2" : "px-2 py-2"
             }`}
           >
             {loadingGalaxyCard ? (
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-yellow-400 border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-amber border-t-transparent"></div>
             ) : galaxyCardImageUrl ? (
               <>
                 <div className="flex-1 flex items-center justify-center">
@@ -165,25 +165,25 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                     className="h-10 w-auto object-contain"
                   />
                 </div>
-                <span className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide">
                   REWARDS
                 </span>
               </>
             ) : (
               <>
-                <span className="text-xs font-mono font-bold text-white uppercase tracking-wide text-center">
+                <span className="text-xs font-mono font-bold text-off-white uppercase tracking-wide text-center">
                   Earn CompX Rewards
                 </span>
-                <span className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide">
                   REWARDS
                 </span>
               </>
             )}
           </button>
           {/* Tooltip */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-slate-900 border border-cyan-500 text-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
             Your current CompX Rewards level
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-cyan-500"></div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-amber"></div>
           </div>
         </div>
       </div>
