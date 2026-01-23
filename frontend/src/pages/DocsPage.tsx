@@ -1,19 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
-  BookOpen,
   Coins,
   TrendingUp,
-  ShoppingCart,
   Wallet,
   Droplets,
-  Zap,
   ChevronRight,
   Radio,
   Target,
-  AlertTriangle,
   Settings,
   FileText,
 } from "lucide-react";
