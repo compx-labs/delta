@@ -2,6 +2,7 @@ import { algorandFixture } from "@algorandfoundation/algokit-utils/testing";
 import { StakingClient, StakingFactory } from "../artifacts/staking/stakingClient";
 import algosdk, { Address, Account } from "algosdk";
 import { MasterRepoClient, MasterRepoFactory } from "../artifacts/master_repo/master_repoClient";
+import { consoleLogger } from "@algorandfoundation/algokit-utils/types/logging";
 
 export const deploy = async (adminAccount: Account, masterRepoApp: bigint) => {
   const localnet = algorandFixture();
@@ -20,10 +21,15 @@ export const deploy = async (adminAccount: Account, masterRepoApp: bigint) => {
     sender: adminAccount.addr,
   });
   appClient.algorand.setSignerFromAccount(adminAccount);
+  consoleLogger.debug(`Deployed staking contract with app ID: ${appClient.appId}, address: ${appClient.appAddress}`);
   return appClient;
 };
 
-export const deployMasterRepo = async (adminAccount: Account, superAdminAccount: Account, platformFeeBps: bigint): Promise<MasterRepoClient> => {
+export const deployMasterRepo = async (
+  adminAccount: Account,
+  superAdminAccount: Account,
+  platformFeeBps: bigint,
+): Promise<MasterRepoClient> => {
   const localnet = algorandFixture();
   await localnet.newScope(); // Ensure context is initialized before accessing it
   localnet.algorand.setSignerFromAccount(adminAccount);
@@ -41,6 +47,8 @@ export const deployMasterRepo = async (adminAccount: Account, superAdminAccount:
     sender: adminAccount.addr,
   });
   appClient.algorand.setSignerFromAccount(adminAccount);
+  consoleLogger.debug(`Deployed master repo contract with app ID: ${appClient.appId}, address: ${appClient.appAddress}`);
+
   return appClient;
 };
 

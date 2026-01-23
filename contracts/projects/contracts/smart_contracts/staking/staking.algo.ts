@@ -66,7 +66,6 @@ export class Staking extends Contract {
     startTime: uint64,
     duration: uint64,
     initialBalanceTxn: gtxn.PaymentTxn,
-    rewardFundingTxn: gtxn.AssetTransferTxn,
   ): void {
     assert(op.Txn.sender === this.admin_address.value, "Only admin can init application");
     assert(rewardAmount > 0, "Invalid reward amount");
@@ -117,13 +116,6 @@ export class Staking extends Contract {
         })
         .submit();
     }
-
-    assertMatch(rewardFundingTxn, {
-      sender: this.admin_address.value,
-      assetReceiver: Global.currentApplicationAddress,
-      xferAsset: Asset(rewardAssetId),
-      assetAmount: rewardAmount,
-    });
   }
 
   @abimethod({ allowActions: "NoOp" })
@@ -135,7 +127,6 @@ export class Staking extends Contract {
     startTime: uint64,
     duration: uint64,
     initialBalanceTxn: gtxn.PaymentTxn,
-    rewardFundingTxn: gtxn.AssetTransferTxn,
   ): void {
     assert(op.Txn.sender === this.admin_address.value, "Only admin can init application");
     assert(rewardAmount > 0, "Invalid reward amount");
@@ -184,11 +175,19 @@ export class Staking extends Contract {
         })
         .submit();
     }
+  }
+
+  @abimethod({ allowActions: "NoOp" })
+  fundRewards(rewardFundingTxn: gtxn.AssetTransferTxn, rewardAmount: uint64): void {
+    assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
+    assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
+    assert(this.accrued_rewards.value.asUint64() === 0, "Rewards already started");
+    assert(rewardAmount === this.total_rewards.value.asUint64(), "Reward amount mismatch");
 
     assertMatch(rewardFundingTxn, {
       sender: this.admin_address.value,
       assetReceiver: Global.currentApplicationAddress,
-      xferAsset: Asset(rewardAssetId),
+      xferAsset: Asset(this.reward_asset_id.value.asUint64()),
       assetAmount: rewardAmount,
     });
   }
