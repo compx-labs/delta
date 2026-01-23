@@ -4,7 +4,7 @@ import type { NetworkType } from "./context/networkContext";
 
 // Get the current network from localStorage
 function getCurrentNetwork(): NetworkType {
-  const stored = localStorage.getItem('orbital-preferred-network');
+  const stored = localStorage.getItem('delta-preferred-network');
   return (stored as NetworkType) || 'testnet';
 }
 

@@ -181,7 +181,7 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                         Resource Station
                       </h2>
                       <p className="text-sm text-slate-300 font-mono">
-                        Request testnet resources for orbital missions
+                        Request testnet resources for delta missions
                       </p>
                     </div>
                   </div>

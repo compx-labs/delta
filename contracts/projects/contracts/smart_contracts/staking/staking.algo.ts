@@ -303,7 +303,7 @@ export class Staking extends Contract {
   }
 
   @abimethod({ allowActions: "NoOp" })
-  stake(stakeTxn: gtxn.AssetTransferTxn, quantity: uint64): void {
+  stake(stakeTxn: gtxn.AssetTransferTxn, quantity: uint64, mbrTxn: gtxn.PaymentTxn): void {
     assert(quantity > 0, "Invalid quantity");
     assert(this.contract_state.value.asUint64() === 1, "Pool is inactive");
     assert(Global.latestTimestamp < this.end_time.value.asUint64(), "Pool ended");
@@ -315,6 +315,23 @@ export class Staking extends Contract {
     });
 
     const exists = this.stakers(op.Txn.sender).exists;
+    if (!exists) {
+      assertMatch(mbrTxn, {
+        sender: op.Txn.sender,
+        receiver: Global.currentApplicationAddress,
+        amount: BOX_FEE,
+      });
+    } else {
+      // if the box record alreay exists, repay the box fee
+      itxn
+        .payment({
+          receiver: op.Txn.sender,
+          amount: mbrTxn.amount,
+          sender: Global.currentApplicationAddress,
+          fee: 0,
+        })
+        .submit();
+    }
 
     this.updatePool();
 
@@ -426,7 +443,7 @@ export class Staking extends Contract {
       itxn
         .payment({
           receiver: op.Txn.sender,
-          amount: BOX_FEE - 2000,
+          amount: BOX_FEE,
           sender: Global.currentApplicationAddress,
           fee: 0,
         })
