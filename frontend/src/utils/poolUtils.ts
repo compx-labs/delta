@@ -209,3 +209,20 @@ export function calculateEstimatedRewards(
 
   return estimatedClaimable;
 }
+
+/**
+ * Fetches all stakers for a pool
+ */
+export async function fetchAllStakers(
+  network: 'testnet' | 'mainnet',
+  appId: bigint
+): Promise<Map<string, { stake: bigint; rewardDebt: bigint }>> {
+  try {
+    const client = createStakingClient(network, appId);
+    const stakersMap = await client.state.box.stakers.getMap();
+    return stakersMap;
+  } catch (error) {
+    console.error(`Error fetching stakers for pool ${appId}:`, error);
+    return new Map();
+  }
+}

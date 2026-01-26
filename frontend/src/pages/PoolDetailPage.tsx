@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWallet } from '@txnlab/use-wallet-react'
+import axios from 'axios'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { usePools } from '../context/poolsContext'
@@ -10,12 +11,31 @@ import { useNetwork } from '../context/networkContext'
 import { useWalletContext } from '../context/wallet'
 import { useToast } from '../context/toastContext'
 import { fetchMultipleAssetInfo } from '../utils/assetUtils'
-import { fetchUserStakingInfo, formatAmount, calculateEstimatedRewards } from '../utils/poolUtils'
+import { fetchUserStakingInfo, formatAmount, calculateEstimatedRewards, fetchAllStakers } from '../utils/poolUtils'
 import { stake, unstake, claimRewards } from '../contracts/staking/user'
 import { StatusDot } from '../components/StatusDot'
 import { StatItem } from '../components/StatItem'
-import { CopyField } from '../components/CopyField'
 import type { PoolDetail } from '../types/pool'
+
+type TabId = 'assets' | 'stakers' | 'contract'
+
+interface TokenDetails {
+  asset_id: number
+  name: string
+  unit_name: string
+  fraction_decimals: number
+  description?: string
+  url?: string
+  creator_address?: string
+  verification_details?: {
+    project_name?: string
+    project_description?: string
+    project_url?: string
+    discord_url?: string
+    telegram_url?: string
+    twitter_username?: string
+  }
+}
 
 interface ActionsPanelProps {
   pool: PoolDetail
@@ -247,7 +267,7 @@ export function PoolDetailPage() {
   const [searchParams] = useSearchParams()
   const poolId = searchParams.get('poolId')
   const { activeAccount, transactionSigner } = useWallet()
-  const { networkConfig } = useNetwork()
+  const { networkConfig, isTestnet } = useNetwork()
   const { poolStates, refetchPools } = usePools()
   const { assets: walletAssets, refetchBalances } = useWalletContext()
   const { openToast } = useToast()
@@ -256,6 +276,9 @@ export function PoolDetailPage() {
   const [isWithdraw, setIsWithdraw] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabId>('assets')
+  const [depositTokenDetails, setDepositTokenDetails] = useState<TokenDetails | null>(null)
+  const [rewardTokenDetails, setRewardTokenDetails] = useState<TokenDetails[]>([])
 
   const network = networkConfig.id
   
@@ -302,6 +325,17 @@ export function PoolDetailPage() {
       )
     },
     enabled: !!poolId && !!activeAccount?.address && !!poolState,
+    staleTime: 30 * 1000,
+  })
+
+  // Fetch all stakers
+  const { data: allStakers } = useQuery({
+    queryKey: ['allStakers', network, poolId],
+    queryFn: async () => {
+      if (!poolId) return new Map()
+      return fetchAllStakers(network, BigInt(poolId))
+    },
+    enabled: !!poolId,
     staleTime: 30 * 1000,
   })
 
@@ -410,6 +444,71 @@ export function PoolDetailPage() {
     const decimals = asset.decimals || 6
     return formatAmount(balance, decimals)
   }, [pool, walletAssets])
+
+  // Fetch token details from Pera Wallet API (mainnet) or use placeholder (testnet)
+  useEffect(() => {
+    const fetchTokenDetails = async () => {
+      if (!pool || !pool.depositAsset.id) return
+
+      if (isTestnet) {
+        // Use placeholder data for testnet
+        setDepositTokenDetails({
+          asset_id: Number(pool.depositAsset.id),
+          name: `${pool.depositAsset.symbol} Token`,
+          unit_name: pool.depositAsset.symbol,
+          fraction_decimals: pool.depositAsset.decimals || 6,
+          description: `Testnet token for ${pool.depositAsset.symbol}. This is placeholder data for testing purposes.`,
+        })
+        
+        const rewardPlaceholders: TokenDetails[] = pool.rewardAssets.map((asset) => ({
+          asset_id: Number(asset.id || 0),
+          name: `${asset.symbol} Token`,
+          unit_name: asset.symbol,
+          fraction_decimals: asset.decimals || 6,
+          description: `Testnet token for ${asset.symbol}. This is placeholder data for testing purposes.`,
+        }))
+        setRewardTokenDetails(rewardPlaceholders)
+      } else {
+        // Fetch from Pera Wallet API for mainnet
+        try {
+          const requests = [
+            axios.get(`https://mainnet.api.perawallet.app/v1/public/assets/${pool.depositAsset.id}`),
+            ...pool.rewardAssets.map((asset) =>
+              asset.id
+                ? axios.get(`https://mainnet.api.perawallet.app/v1/public/assets/${asset.id}`)
+                : Promise.resolve({ data: null })
+            ),
+          ]
+
+          const responses = await Promise.all(requests)
+          
+          if (responses[0]?.data) {
+            setDepositTokenDetails(responses[0].data)
+          }
+
+          const rewardDetails: TokenDetails[] = responses
+            .slice(1)
+            .map((response) => response?.data)
+            .filter((data): data is TokenDetails => data !== null && data !== undefined)
+          
+          setRewardTokenDetails(rewardDetails)
+        } catch (error) {
+          console.error('Failed to fetch token details:', error)
+          // Set placeholder data on error
+          setDepositTokenDetails({
+            asset_id: Number(pool.depositAsset.id),
+            name: `${pool.depositAsset.symbol} Token`,
+            unit_name: pool.depositAsset.symbol,
+            fraction_decimals: pool.depositAsset.decimals || 6,
+            description: `Token information unavailable.`,
+          })
+          setRewardTokenDetails([])
+        }
+      }
+    }
+
+    fetchTokenDetails()
+  }, [pool, isTestnet])
 
   const totalClaimable = pool?.user.claimableRewards.reduce((sum, r) => sum + r.amount, 0) || 0
 
@@ -801,7 +900,6 @@ export function PoolDetailPage() {
 
             {/* Key Stats */}
             <div>
-              <h2 className="text-lg font-medium text-off-white mb-4">Pool Overview</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <div className="text-xs text-mid-grey mb-1">APR</div>
@@ -836,26 +934,396 @@ export function PoolDetailPage() {
               </div>
             </div>
 
-            {/* Pool Parameters */}
+            {/* Tabs */}
             <div>
-              <h2 className="text-lg font-medium text-off-white mb-4">Pool Parameters</h2>
-              <div className="space-y-4">
-                <CopyField label="Pool ID" value={pool.id} variant="dark" />
-                <CopyField label="Deposit Asset" value={pool.depositAsset.id || pool.depositAsset.symbol} variant="dark" />
-                <CopyField
-                  label="Reward Asset(s)"
-                  value={pool.rewardAssets.map(a => a.id || a.symbol).join(', ')}
-                  variant="dark"
-                />
-                {pool.schedule.startTime && (
-                  <CopyField label="Start Time" value={formatDate(pool.schedule.startTime)} variant="dark" />
+              {/* Tab Headers */}
+              <div className="flex gap-2 border-b-2 border-mid-grey/30 mb-4">
+                <button
+                  onClick={() => setActiveTab('assets')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === 'assets'
+                      ? 'text-amber border-b-2 border-amber -mb-[2px]'
+                      : 'text-mid-grey hover:text-off-white'
+                  }`}
+                >
+                  Assets
+                </button>
+                <button
+                  onClick={() => setActiveTab('stakers')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === 'stakers'
+                      ? 'text-amber border-b-2 border-amber -mb-[2px]'
+                      : 'text-mid-grey hover:text-off-white'
+                  }`}
+                >
+                  Stakers
+                </button>
+                <button
+                  onClick={() => setActiveTab('contract')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === 'contract'
+                      ? 'text-amber border-b-2 border-amber -mb-[2px]'
+                      : 'text-mid-grey hover:text-off-white'
+                  }`}
+                >
+                  Contract
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="mt-4">
+                {activeTab === 'assets' && (
+                  <div className="space-y-6">
+                    <div className="border-2 border-mid-grey/30 p-4">
+                      <h3 className="text-sm font-medium text-mid-grey mb-4">Deposit Asset</h3>
+                      {/* Symbol, Asset ID, Decimals in one row */}
+                      <div className={`grid gap-4 mb-4 ${pool.depositAsset.decimals !== undefined ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Symbol</div>
+                          <div className="text-sm text-off-white font-mono">{pool.depositAsset.symbol}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Asset ID</div>
+                          <div className="text-sm text-off-white font-mono">{pool.depositAsset.id || '--'}</div>
+                        </div>
+                        {pool.depositAsset.decimals !== undefined && (
+                          <div>
+                            <div className="text-xs text-mid-grey mb-1">Decimals</div>
+                            <div className="text-sm text-off-white">{pool.depositAsset.decimals}</div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Description and other info below */}
+                      <div className="space-y-3 pt-3 border-t-2 border-mid-grey/20">
+                        {(depositTokenDetails?.description || depositTokenDetails?.verification_details?.project_description) && (
+                          <div>
+                            <div className="text-xs text-mid-grey mb-1">Description</div>
+                            <div className="text-sm text-off-white leading-relaxed">
+                              {depositTokenDetails.description || depositTokenDetails.verification_details?.project_description}
+                            </div>
+                          </div>
+                        )}
+                        {depositTokenDetails?.url && (
+                          <div>
+                            <div className="text-xs text-mid-grey mb-1">URL</div>
+                            <a 
+                              href={depositTokenDetails.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-amber hover:text-amber/80 break-all"
+                            >
+                              {depositTokenDetails.url}
+                            </a>
+                          </div>
+                        )}
+                        {depositTokenDetails?.verification_details?.project_url && (
+                          <div>
+                            <div className="text-xs text-mid-grey mb-1">Project URL</div>
+                            <a 
+                              href={depositTokenDetails.verification_details.project_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-amber hover:text-amber/80 break-all"
+                            >
+                              {depositTokenDetails.verification_details.project_url}
+                            </a>
+                          </div>
+                        )}
+                        {depositTokenDetails?.creator_address && (
+                          <div>
+                            <div className="text-xs text-mid-grey mb-1">Creator Address</div>
+                            <div className="text-sm text-off-white font-mono break-all">{depositTokenDetails.creator_address}</div>
+                          </div>
+                        )}
+                        {(depositTokenDetails?.verification_details?.discord_url || depositTokenDetails?.verification_details?.telegram_url || depositTokenDetails?.verification_details?.twitter_username) && (
+                          <div>
+                            <div className="text-xs text-mid-grey mb-1">Social Links</div>
+                            <div className="flex flex-wrap gap-3 text-sm">
+                              {depositTokenDetails.verification_details?.discord_url && (
+                                <a 
+                                  href={depositTokenDetails.verification_details.discord_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-amber hover:text-amber/80"
+                                >
+                                  Discord
+                                </a>
+                              )}
+                              {depositTokenDetails.verification_details?.telegram_url && (
+                                <a 
+                                  href={depositTokenDetails.verification_details.telegram_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-amber hover:text-amber/80"
+                                >
+                                  Telegram
+                                </a>
+                              )}
+                              {depositTokenDetails.verification_details?.twitter_username && (
+                                <a 
+                                  href={`https://twitter.com/${depositTokenDetails.verification_details.twitter_username}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-amber hover:text-amber/80"
+                                >
+                                  Twitter
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="border-2 border-mid-grey/30 p-4">
+                      <h3 className="text-sm font-medium text-mid-grey mb-4">Reward Asset(s)</h3>
+                      <div className="space-y-4">
+                        {pool.rewardAssets.map((asset, index) => {
+                          const rewardDetails = rewardTokenDetails[index]
+                          return (
+                            <div key={index} className={index > 0 ? 'pt-4 border-t-2 border-mid-grey/20' : ''}>
+                              {/* Symbol, Asset ID, Decimals in one row */}
+                              <div className={`grid gap-4 mb-4 ${asset.decimals !== undefined ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                <div>
+                                  <div className="text-xs text-mid-grey mb-1">
+                                    {pool.rewardAssets.length > 1 ? `Reward Asset ${index + 1} Symbol` : 'Symbol'}
+                                  </div>
+                                  <div className="text-sm text-off-white font-mono">{asset.symbol}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-mid-grey mb-1">
+                                    {pool.rewardAssets.length > 1 ? `Reward Asset ${index + 1} ID` : 'Asset ID'}
+                                  </div>
+                                  <div className="text-sm text-off-white font-mono">{asset.id || '--'}</div>
+                                </div>
+                                {asset.decimals !== undefined && (
+                                  <div>
+                                    <div className="text-xs text-mid-grey mb-1">Decimals</div>
+                                    <div className="text-sm text-off-white">{asset.decimals}</div>
+                                  </div>
+                                )}
+                              </div>
+                              {/* Description and other info below */}
+                              <div className="space-y-3 pt-3 border-t-2 border-mid-grey/20">
+                                {(rewardDetails?.description || rewardDetails?.verification_details?.project_description) && (
+                                  <div>
+                                    <div className="text-xs text-mid-grey mb-1">Description</div>
+                                    <div className="text-sm text-off-white leading-relaxed">
+                                      {rewardDetails.description || rewardDetails.verification_details?.project_description}
+                                    </div>
+                                  </div>
+                                )}
+                                {rewardDetails?.url && (
+                                  <div>
+                                    <div className="text-xs text-mid-grey mb-1">URL</div>
+                                    <a 
+                                      href={rewardDetails.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-amber hover:text-amber/80 break-all"
+                                    >
+                                      {rewardDetails.url}
+                                    </a>
+                                  </div>
+                                )}
+                                {rewardDetails?.verification_details?.project_url && (
+                                  <div>
+                                    <div className="text-xs text-mid-grey mb-1">Project URL</div>
+                                    <a 
+                                      href={rewardDetails.verification_details.project_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-amber hover:text-amber/80 break-all"
+                                    >
+                                      {rewardDetails.verification_details.project_url}
+                                    </a>
+                                  </div>
+                                )}
+                                {rewardDetails?.creator_address && (
+                                  <div>
+                                    <div className="text-xs text-mid-grey mb-1">Creator Address</div>
+                                    <div className="text-sm text-off-white font-mono break-all">{rewardDetails.creator_address}</div>
+                                  </div>
+                                )}
+                                {(rewardDetails?.verification_details?.discord_url || rewardDetails?.verification_details?.telegram_url || rewardDetails?.verification_details?.twitter_username) && (
+                                  <div>
+                                    <div className="text-xs text-mid-grey mb-1">Social Links</div>
+                                    <div className="flex flex-wrap gap-3 text-sm">
+                                      {rewardDetails.verification_details?.discord_url && (
+                                        <a 
+                                          href={rewardDetails.verification_details.discord_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-amber hover:text-amber/80"
+                                        >
+                                          Discord
+                                        </a>
+                                      )}
+                                      {rewardDetails.verification_details?.telegram_url && (
+                                        <a 
+                                          href={rewardDetails.verification_details.telegram_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-amber hover:text-amber/80"
+                                        >
+                                          Telegram
+                                        </a>
+                                      )}
+                                      {rewardDetails.verification_details?.twitter_username && (
+                                        <a 
+                                          href={`https://twitter.com/${rewardDetails.verification_details.twitter_username}`} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-amber hover:text-amber/80"
+                                        >
+                                          Twitter
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {pool.schedule.endTime && (
-                  <CopyField label="End Time" value={formatDate(pool.schedule.endTime)} variant="dark" />
+
+                {activeTab === 'stakers' && (
+                  <div className="space-y-6">
+                    {/* Top-level stats */}
+                    <div className="border-2 border-mid-grey/30 p-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Total Stakers</div>
+                          <div className="text-xl font-medium text-off-white">
+                            {poolState?.numStakers !== undefined 
+                              ? poolState.numStakers.toString() 
+                              : '--'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Average Stake</div>
+                          <div className="text-xl font-medium text-off-white">
+                            {poolState?.numStakers && poolState.numStakers > BigInt(0) && poolState.totalStaked && pool
+                              ? (() => {
+                                  const avgStake = Number(poolState.totalStaked) / Number(poolState.numStakers)
+                                  const decimals = pool.depositAsset.decimals || 6
+                                  return formatAmount(BigInt(Math.floor(avgStake)), decimals)
+                                })()
+                              : '--'}
+                            {poolState?.numStakers && poolState.numStakers > BigInt(0) && poolState.totalStaked && pool && (
+                              <span className="text-sm text-mid-grey ml-1">{pool.depositAsset.symbol}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Average Time in Pool</div>
+                          <div className="text-xl font-medium text-off-white">
+                            {poolState?.startTime 
+                              ? (() => {
+                                  const startTime = Number(poolState.startTime) * 1000
+                                  const now = Date.now()
+                                  const ageMs = now - startTime
+                                  const days = Math.floor(ageMs / (1000 * 60 * 60 * 24))
+                                  const hours = Math.floor((ageMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+                                  if (days > 0) {
+                                    return `${days}d ${hours}h`
+                                  }
+                                  return `${hours}h`
+                                })()
+                              : '--'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top 10 Stakers Table */}
+                    <div className="border-2 border-mid-grey/30">
+                      <div className="p-4 border-b-2 border-mid-grey/30">
+                        <h3 className="text-sm font-medium text-mid-grey">Top 10 Stakers</h3>
+                      </div>
+                      {allStakers && allStakers.size > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b-2 border-mid-grey/30">
+                                <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Position</th>
+                                <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Address</th>
+                                <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">Stake Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Array.from(allStakers.entries())
+                                .map(([address, info]) => ({
+                                  address,
+                                  stake: info.stake,
+                                }))
+                                .sort((a, b) => {
+                                  // Sort by stake amount descending
+                                  if (b.stake > a.stake) return 1
+                                  if (b.stake < a.stake) return -1
+                                  return 0
+                                })
+                                .slice(0, 10)
+                                .map((staker, index) => {
+                                  const stakeAmount = pool
+                                    ? formatAmount(staker.stake, pool.depositAsset.decimals || 6)
+                                    : staker.stake.toString()
+                                  return (
+                                    <tr key={staker.address} className="border-b border-mid-grey/20 hover:bg-mid-grey/5">
+                                      <td className="px-4 py-3 text-sm text-off-white">{index + 1}</td>
+                                      <td className="px-4 py-3 text-sm text-off-white font-mono">
+                                        {staker.address.slice(0, 8)}...{staker.address.slice(-8)}
+                                      </td>
+                                      <td className="px-4 py-3 text-sm text-off-white text-right">
+                                        {stakeAmount} {pool?.depositAsset.symbol || ''}
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-sm text-mid-grey text-center">
+                          {allStakers ? 'No stakers found' : 'Loading stakers...'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
-                <CopyField label="Creator Address" value={pool.creator} variant="dark" />
-                {pool.contractRef.appId && (
-                  <CopyField label="Contract App ID" value={pool.contractRef.appId} variant="dark" />
+
+                {activeTab === 'contract' && (
+                  <div className="space-y-4">
+                    <div className="border-2 border-mid-grey/30 p-4">
+                      <div className="text-xs text-mid-grey mb-1">Pool ID</div>
+                      <div className="text-sm text-off-white font-mono">{pool.id}</div>
+                    </div>
+                    {pool.contractRef.appId && (
+                      <div className="border-2 border-mid-grey/30 p-4">
+                        <div className="text-xs text-mid-grey mb-1">Contract App ID</div>
+                        <div className="text-sm text-off-white font-mono">{pool.contractRef.appId}</div>
+                      </div>
+                    )}
+                    {pool.schedule.startTime && (
+                      <div className="border-2 border-mid-grey/30 p-4">
+                        <div className="text-xs text-mid-grey mb-1">Start Time</div>
+                        <div className="text-sm text-off-white">{formatDate(pool.schedule.startTime)}</div>
+                      </div>
+                    )}
+                    {pool.schedule.endTime && (
+                      <div className="border-2 border-mid-grey/30 p-4">
+                        <div className="text-xs text-mid-grey mb-1">End Time</div>
+                        <div className="text-sm text-off-white">{formatDate(pool.schedule.endTime)}</div>
+                      </div>
+                    )}
+                    <div className="border-2 border-mid-grey/30 p-4">
+                      <div className="text-xs text-mid-grey mb-1">Creator Address</div>
+                      <div className="text-sm text-off-white font-mono break-all">{pool.creator}</div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

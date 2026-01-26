@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+import { IoMdPlay } from 'react-icons/io'
 import type { PoolListItem } from '../types/pool'
 
 interface PoolsTableProps {
@@ -42,14 +44,25 @@ export function PoolsTable({ pools, onSelectPool }: PoolsTableProps) {
         <tbody>
           {pools.map((pool) => {
             return (
-              <tr
+              <motion.tr
                 key={pool.id}
                 onClick={() => onSelectPool(pool.id)}
                 className="border-b-2 border-mid-grey/20 cursor-pointer transition-colors hover:bg-off-white/5"
+                initial="rest"
+                whileHover="hover"
               >
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2  ${pool.status === 'active' ? 'bg-accent' : 'bg-mid-grey'}`} />
+                    <motion.div
+                      variants={{
+                        rest: { rotate: -90 },
+                        hover: { rotate: 0 },
+                      }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className={`${pool.status === 'active' ? 'text-accent' : 'text-mid-grey'}`}
+                    >
+                      <IoMdPlay className="w-3 h-3" />
+                    </motion.div>
                     <span className="font-medium text-off-white">{pool.name || pool.displayName}</span>
                   </div>
                 </td>
@@ -72,7 +85,7 @@ export function PoolsTable({ pools, onSelectPool }: PoolsTableProps) {
                 <td className="px-4 py-4 text-mid-grey text-sm">
                   {pool.rewardAssets.map(asset => asset.symbol).join(', ')}
                 </td>
-              </tr>
+              </motion.tr>
             )
           })}
         </tbody>
