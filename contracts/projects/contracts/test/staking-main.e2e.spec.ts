@@ -150,7 +150,7 @@ describe("staking pools Testing - main flow", () => {
 
     const stakedAsset = await localnet.context.algorand.send.assetCreate({
       sender: poolAdmin.addr,
-      total: 100_000_000n,
+      total: 100_000_000_000n,
       decimals: 6,
       defaultFrozen: false,
       unitName: "STAKE",
@@ -574,5 +574,172 @@ describe("staking pools Testing - main flow", () => {
     expect(stateAfterFull.numStakers).toEqual(0n);
 
     await expect(restakePool.state.box.stakers.value(stakerAddr)).rejects.toThrowError();
+  });
+
+  test("different stake sizes: rewards proportional after 50 rounds", async () => {
+    const variedPool = await deploy(poolAdmin, masterRepoClient.appId);
+    variedPool.algorand.setSignerFromAccount(poolAdmin);
+
+    const initialBalanceTxn = variedPool.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: variedPool.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "initial mbr - varied stakes",
+      maxFee: MAX_FEE,
+    });
+
+    const rewardFundingTxn = variedPool.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: variedPool.appClient.appAddress,
+      assetId: rewardAssetId,
+      amount: REWARD_AMOUNT,
+      note: "reward funding - varied stakes",
+      maxFee: MAX_FEE,
+    });
+
+    await variedPool.send.initApplication({
+      args: {
+        stakedAssetId,
+        rewardAssetId,
+        rewardAmount: REWARD_AMOUNT,
+        aprBps: 10_200n,
+        startTime: 0n,
+        duration: DURATION,
+        initialBalanceTxn,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await variedPool.send.fundRewards({
+      args: {
+        rewardFundingTxn,
+        rewardAmount: REWARD_AMOUNT,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await variedPool.send.setContractActive({
+      args: {},
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const stakePlan = [
+      5_000_000n,
+      10_000_000n,
+      15_000_000n,
+      20_000_000n,
+      25_000_000n,
+    ];
+
+    const variedStakers: Account[] = [];
+    for (const amount of stakePlan) {
+      const staker = await localnet.context.generateAccount({ initialFunds: microAlgo(10_000_000) });
+      variedStakers.push(staker);
+
+      localnet.algorand.setSignerFromAccount(staker);
+      await localnet.algorand.send.assetOptIn({
+        sender: staker.addr,
+        assetId: stakedAssetId,
+      });
+      await localnet.algorand.send.assetOptIn({
+        sender: staker.addr,
+        assetId: rewardAssetId,
+      });
+
+      localnet.algorand.setSignerFromAccount(poolAdmin);
+      await localnet.algorand.send.assetTransfer({
+        sender: poolAdmin.addr,
+        receiver: staker.addr,
+        assetId: stakedAssetId,
+        amount,
+        note: "fund staker varied",
+      });
+
+      variedPool.algorand.setSignerFromAccount(staker);
+      const stakeTxn = variedPool.algorand.createTransaction.assetTransfer({
+        sender: staker.addr,
+        receiver: variedPool.appClient.appAddress,
+        assetId: stakedAssetId,
+        amount,
+        note: "stake varied",
+        maxFee: MAX_FEE,
+      });
+      const mbrTxn = variedPool.algorand.createTransaction.payment({
+        sender: staker.addr,
+        receiver: variedPool.appClient.appAddress,
+        amount: microAlgo(BOX_FEE),
+        note: "box mbr varied",
+        maxFee: MAX_FEE,
+      });
+
+      await variedPool.send.stake({
+        args: {
+          stakeTxn,
+          quantity: amount,
+          mbrTxn,
+        },
+        sender: staker.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      });
+    }
+
+    await advanceRounds(50);
+
+    const platformFeeBps = (await variedPool.state.global.getAll()).platformFeeBps ?? 0n;
+
+    for (let i = 0; i < variedStakers.length; i += 1) {
+      const staker = variedStakers[i];
+      const stakerAddr = algosdk.encodeAddress(staker.addr.publicKey);
+      const stakeAmount = stakePlan[i];
+
+      const globalBefore = await variedPool.state.global.getAll();
+      const nowTs = await getLatestTimestamp();
+      const preview = updatePoolPreview(globalBefore, nowTs);
+
+      const rewardBefore = await getAssetBalance(stakerAddr, rewardAssetId);
+      const stakerBox = await variedPool.state.box.stakers.value(stakerAddr);
+      const stakerStake = stakerBox?.stake ?? 0n;
+      const stakerDebt = stakerBox?.rewardDebt ?? 0n;
+
+      const accrued = (stakerStake * preview.rewardPerToken) / PRECISION;
+      const expectedPending = accrued > stakerDebt ? accrued - stakerDebt : 0n;
+      const expectedFee = (expectedPending * platformFeeBps) / 10_000n;
+      const expectedNet = expectedPending - expectedFee;
+
+      variedPool.algorand.setSignerFromAccount(staker);
+      await variedPool.send.claimRewards({
+        args: {},
+        sender: staker.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      });
+
+      const rewardAfter = await getAssetBalance(stakerAddr, rewardAssetId);
+      expect(rewardAfter - rewardBefore).toEqual(expectedNet);
+
+      const stakeBefore = await getAssetBalance(stakerAddr, stakedAssetId);
+      await variedPool.send.unstake({
+        args: { quantity: 0n },
+        sender: staker.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      });
+      const stakeAfter = await getAssetBalance(stakerAddr, stakedAssetId);
+      expect(stakeAfter - stakeBefore).toEqual(stakeAmount);
+    }
+
+    const finalState = await variedPool.state.global.getAll();
+    expect(finalState.totalStaked).toEqual(0n);
+    expect(finalState.numStakers).toEqual(0n);
   });
 });
