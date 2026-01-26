@@ -23,7 +23,7 @@ export async function getStakingClient(
   appId: number
 ): Promise<StakingClient> {
   const network = getCurrentNetwork();
-  
+
   const algorand = algokit.AlgorandClient.fromConfig({
     algodConfig: {
       server: getAlgodServer(network),
@@ -51,7 +51,7 @@ export async function getMasterRepoClient(
   appId: number
 ): Promise<MasterRepoClient> {
   const network = getCurrentNetwork();
-  
+
   const algorand = algokit.AlgorandClient.fromConfig({
     algodConfig: {
       server: getAlgodServer(network),
@@ -156,7 +156,7 @@ export async function createPool({
 }: CreatePoolParams): Promise<string> {
   try {
     const network = getCurrentNetwork();
-    
+
     const algorand = algokit.AlgorandClient.fromConfig({
       algodConfig: {
         server: getAlgodServer(network),
@@ -187,62 +187,7 @@ export async function createPool({
   }
 }
 
-/**
- * Initializes a staking pool with fixed rewards
- */
-export async function initPool({
-  address,
-  signer,
-  appId,
-  stakedAssetId,
-  rewardAssetId,
-  rewardAssetDecimals = 6,
-  rewardAmount,
-  startTime,
-  duration,
-  initialBalance,
-}: InitPoolParams): Promise<string> {
-  try {
-    const appClient = await getStakingClient(signer, address, appId);
-    appClient.algorand.setDefaultSigner(signer);
 
-    const upscaledRewardAmount = Math.floor(rewardAmount * 10 ** rewardAssetDecimals);
-
-    // Create payment transaction for initial balance
-    const initialBalanceTxn = appClient.algorand.createTransaction.payment({
-      sender: address,
-      receiver: appClient.appAddress,
-      amount: AlgoAmount.MicroAlgos(initialBalance),
-      note: "Initial pool balance",
-      maxFee: MAX_FEE,
-    });
-
-    const result = await appClient
-      .newGroup()
-      .initApplication({
-        args: {
-          stakedAssetId: BigInt(stakedAssetId),
-          rewardAssetId: BigInt(rewardAssetId),
-          rewardAmount: BigInt(upscaledRewardAmount),
-          startTime: BigInt(startTime),
-          duration: BigInt(duration),
-          initialBalanceTxn,
-        },
-        sender: address,
-        maxFee: MAX_FEE,
-      })
-      .send({
-        suppressLog: false,
-        coverAppCallInnerTransactionFees: true,
-        populateAppCallResources: true,
-      });
-
-    return result.txIds[0];
-  } catch (error) {
-    console.error("Init pool failed:", error);
-    throw error;
-  }
-}
 
 /**
  * Initializes a staking pool with APR-based rewards
@@ -277,7 +222,7 @@ export async function initPoolApr({
 
     const result = await appClient
       .newGroup()
-      .initApplicationApr({
+      .initApplication({
         args: {
           stakedAssetId: BigInt(stakedAssetId),
           rewardAssetId: BigInt(rewardAssetId),
@@ -286,6 +231,7 @@ export async function initPoolApr({
           startTime: BigInt(startTime),
           duration: BigInt(duration),
           initialBalanceTxn,
+
         },
         sender: address,
         maxFee: MAX_FEE,
@@ -330,12 +276,21 @@ export async function stake({
       maxFee: MAX_FEE,
     });
 
+    const mbrTxn = appClient.algorand.createTransaction.payment({
+      sender: address,
+      receiver: appClient.appAddress,
+      amount: AlgoAmount.MicroAlgos(22_500),
+      note: "MBR payment",
+      maxFee: MAX_FEE,
+    });
+
     const result = await appClient
       .newGroup()
       .stake({
         args: {
           stakeTxn,
           quantity: BigInt(upscaledAmount),
+          mbrTxn,
         },
         sender: address,
         maxFee: MAX_FEE,

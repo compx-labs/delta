@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useState } from "react";
+import { createContext, useState, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { useNetwork } from "./networkContext";
@@ -159,3 +159,11 @@ const WalletContextProvider: React.FC<{ children: React.ReactNode }> = ({
 };
 
 export { WalletContext, WalletContextProvider };
+
+export const useWalletContext = () => {
+  const context = useContext(WalletContext);
+  if (context === undefined) {
+    throw new Error('useWalletContext must be used within a WalletContextProvider');
+  }
+  return context;
+};

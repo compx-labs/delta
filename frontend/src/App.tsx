@@ -3,6 +3,7 @@ import { Providers } from "./components/provider";
 import { WalletConnectionModal } from "./components/walletConnectModal";
 import { WalletContextProvider } from "./context/wallet";
 import { ExplorerProvider } from "./context/explorerContext";
+import { PoolsProvider } from "./context/poolsContext";
 import { LandingPage } from "./pages/LandingPage";
 import { PoolsPage } from "./pages/PoolsPage";
 import { PoolDetailPage } from "./pages/PoolDetailPage";
@@ -16,19 +17,21 @@ function App() {
     <Providers>
       <ExplorerProvider>
         <ToastProvider>
-          <WalletContextProvider>
-            <WalletConnectionModal />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/pools" element={<PoolsPage />} />
-                <Route path="/pool" element={<PoolDetailPage />} />
-                <Route path="/create" element={<CreatePage />} />
-                <Route path="/manage" element={<ManagePage />} />
-                <Route path="/docs" element={<DocsPage />} />
-              </Routes>
-            </BrowserRouter>
-          </WalletContextProvider>
+          <PoolsProvider>
+            <WalletContextProvider>
+              <WalletConnectionModal />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/pools" element={<PoolsPage />} />
+                  <Route path="/pool" element={<PoolDetailPage />} />
+                  <Route path="/create" element={<CreatePage />} />
+                  <Route path="/manage" element={<ManagePage />} />
+                  <Route path="/docs" element={<DocsPage />} />
+                </Routes>
+              </BrowserRouter>
+            </WalletContextProvider>
+          </PoolsProvider>
         </ToastProvider>
       </ExplorerProvider>
     </Providers>

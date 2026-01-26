@@ -1,33 +1,155 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { PoolsTable } from '../components/PoolsTable'
 import { Dropdown } from '../components/Dropdown'
+import { usePools } from '../context/poolsContext'
+import { useNetwork } from '../context/networkContext'
+import { fetchMultipleAssetInfo } from '../utils/assetUtils'
 import type { PoolListItem } from '../types/pool'
 import type { PoolFilters } from '../types/pool'
-import { getPools } from '../services/poolService'
 
 export function PoolsPage() {
   const navigate = useNavigate()
-  const [pools, setPools] = useState<PoolListItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const { networkConfig } = useNetwork()
+  const { 
+    registeredAppIds, 
+    poolStates, 
+    isLoadingMasterRepo, 
+    isLoadingPools,
+    masterRepoError,
+    poolsError 
+  } = usePools()
+  
   const [filters, setFilters] = useState<PoolFilters>({
     type: 'all',
     status: 'all',
     search: '',
   })
 
-  useEffect(() => {
-    async function fetchPools() {
-      setLoading(true)
-      const data = await getPools(filters)
-      setPools(data)
-      setLoading(false)
+  // Collect all unique asset IDs from pools
+  const assetIds = useMemo(() => {
+    const ids = new Set<string>()
+    poolStates.forEach((state) => {
+      if (state.stakedAssetId) ids.add(state.stakedAssetId.toString())
+      if (state.rewardAssetId) ids.add(state.rewardAssetId.toString())
+    })
+    return Array.from(ids)
+  }, [poolStates])
+
+  // Fetch asset information for all assets used in pools
+  const { 
+    data: assetInfoMap = new Map(),
+    isLoading: isLoadingAssets 
+  } = useQuery({
+    queryKey: ['assetInfo', networkConfig.id, assetIds.join(',')],
+    queryFn: () => fetchMultipleAssetInfo(assetIds, networkConfig),
+    enabled: assetIds.length > 0 && !!networkConfig.indexerServer,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  })
+
+  // Transform pool states to PoolListItem format
+  const pools = useMemo<PoolListItem[]>(() => {
+    const poolList: PoolListItem[] = []
+
+    poolStates.forEach((state, appIdStr) => {
+      if (!state.stakedAssetId || !state.rewardAssetId) {
+        return // Skip incomplete pools
+      }
+
+      const stakedAssetInfo = assetInfoMap.get(state.stakedAssetId.toString())
+      const rewardAssetInfo = assetInfoMap.get(state.rewardAssetId.toString())
+
+      // Determine pool type (single asset or LP token)
+      // For now, we'll assume single asset unless we have better detection
+      const isLpToken = stakedAssetInfo?.symbol?.toUpperCase().includes('LP') || false
+      const poolType: 'single' | 'lp' = isLpToken ? 'lp' : 'single'
+
+      // Calculate APR from aprBps (basis points)
+      const apr = state.aprBps ? Number(state.aprBps) / 100 : null
+
+      // Determine status based on contract state and time
+      const now = BigInt(Math.floor(Date.now() / 1000))
+      const isActive = 
+        state.contractState === BigInt(1) && // Active state
+        state.startTime && state.startTime <= now &&
+        state.endTime && state.endTime > now
+
+      const status: 'active' | 'inactive' = isActive ? 'active' : 'inactive'
+
+      // Calculate TVL (Total Value Locked) - simplified for now
+      // In a real implementation, you'd need to get asset prices
+      const tvlUsd = state.totalStaked ? Number(state.totalStaked) / 1_000_000 : null // Simplified
+
+      // Create display name
+      const stakedSymbol = stakedAssetInfo?.symbol || `Asset ${state.stakedAssetId}`
+      const rewardSymbol = rewardAssetInfo?.symbol || `Asset ${state.rewardAssetId}`
+      const displayName = isLpToken 
+        ? stakedSymbol 
+        : `${stakedSymbol} / ${rewardSymbol}`
+
+      poolList.push({
+        id: appIdStr,
+        displayName,
+        type: poolType,
+        depositAsset: {
+          symbol: stakedSymbol,
+          id: state.stakedAssetId.toString(),
+          decimals: stakedAssetInfo?.decimals,
+        },
+        rewardAssets: [{
+          symbol: rewardSymbol,
+          id: state.rewardAssetId.toString(),
+          decimals: rewardAssetInfo?.decimals,
+        }],
+        apr,
+        tvlUsd,
+        status,
+      })
+    })
+
+    return poolList
+  }, [poolStates, assetInfoMap])
+
+  // Apply filters
+  const filteredPools = useMemo(() => {
+    let filtered = [...pools]
+
+    // Filter by type
+    if (filters.type && filters.type !== 'all') {
+      filtered = filtered.filter(pool => pool.type === filters.type)
     }
 
-    fetchPools()
-  }, [filters])
+    // Filter by status
+    if (filters.status && filters.status !== 'all') {
+      filtered = filtered.filter(pool => pool.status === filters.status)
+    }
+
+    // Filter by search
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      filtered = filtered.filter(
+        pool =>
+          pool.displayName.toLowerCase().includes(searchLower) ||
+          pool.id.toLowerCase().includes(searchLower) ||
+          pool.depositAsset.symbol.toLowerCase().includes(searchLower) ||
+          pool.rewardAssets.some(asset => asset.symbol.toLowerCase().includes(searchLower))
+      )
+    }
+
+    // Sort: Active first, then alphabetical by display name
+    filtered.sort((a, b) => {
+      if (a.status === 'active' && b.status === 'inactive') return -1
+      if (a.status === 'inactive' && b.status === 'active') return 1
+      return a.displayName.localeCompare(b.displayName)
+    })
+
+    return filtered
+  }, [pools, filters])
+
+  const loading = isLoadingMasterRepo || isLoadingPools || isLoadingAssets
 
   const handleSelectPool = (id: string) => {
     navigate(`/pool?poolId=${id}`)
@@ -93,18 +215,28 @@ export function PoolsPage() {
           </div>
         </div>
 
+        {/* Error states */}
+        {(masterRepoError || poolsError) && (
+          <div className="py-8 px-4 bg-red-500/10 border border-red-500/30 rounded text-red-400 mb-6">
+            <p className="font-medium mb-1">Error loading pools</p>
+            <p className="text-sm text-red-300">
+              {masterRepoError?.message || poolsError?.message || 'Unknown error occurred'}
+            </p>
+          </div>
+        )}
+
         {/* Pools Table */}
         {loading ? (
-          <div className="py-16 text-center text-mid-grey">Loading...</div>
+          <div className="py-16 text-center text-mid-grey">Loading pools...</div>
         ) : (
           <PoolsTable
-            pools={pools}
+            pools={filteredPools}
             onSelectPool={handleSelectPool}
           />
         )}
 
         {/* Empty state */}
-        {pools.length === 0 && !loading && (
+        {filteredPools.length === 0 && !loading && !masterRepoError && !poolsError && (
           <div className="py-16 text-center text-mid-grey">
             No pools available. Pools will appear here once incentive programs are created.
           </div>

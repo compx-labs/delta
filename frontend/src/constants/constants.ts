@@ -6,8 +6,9 @@ export const NETWORK = import.meta.env.VITE_NETWORK || 'mainnet';
 export const IS_TESTNET = NETWORK === 'testnet';
 export const IS_DEVELOPMENT = import.meta.env.DEV;  
 export const NETWORK_TOKEN = import.meta.env.VITE_NETWORK_TOKEN;
+export const MASTER_REPO_APP_ID = import.meta.env.VITE_MASTER_REPO_APP;
 
-// API Configuration
+// API Configuration  
 export const DELTA_BACKEND_URL = import.meta.env.VITE_DELTA_BACKEND_URL || 'http://localhost:3000/api';
 // Legacy - keeping for backward compatibility during migration
 export const GENERAL_BACKEND_URL = import.meta.env.VITE_GENERAL_BACKEND_URL || 'http://localhost:8080/api';
