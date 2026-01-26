@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 export interface StepInfo {
     id: string;
@@ -43,14 +43,22 @@ const ToastProvider = ({ children }: { children: ReactNode }) => {
         description: null,
     });
     const [toastVisible, setToastVisible] = useState(false);
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     const openToast = (toast: ToastInterface) => {
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+
         setToast(toast);
         setToastVisible(true);
 
         if (toast.type === 'success' || toast.type === 'error') {
-            setTimeout(() => {
+            timeoutRef.current = setTimeout(() => {
                 setToastVisible(false);
+                timeoutRef.current = null;
             }, 5000);
         }
     };
@@ -60,6 +68,11 @@ const ToastProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const closeToast = () => {
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
         setToast({ type: null, message: '', description: null });
         setToastVisible(false);
     };
@@ -97,6 +110,12 @@ const ToastProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const completeMultiStep = (successMessage?: string) => {
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+
         setToast(prev => ({
             ...prev,
             type: 'success',
@@ -105,12 +124,19 @@ const ToastProvider = ({ children }: { children: ReactNode }) => {
             isMultiStep: false,
         }));
         
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
             setToastVisible(false);
+            timeoutRef.current = null;
         }, 5000);
     };
 
     const failMultiStep = (errorMessage: string) => {
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+
         setToast(prev => ({
             ...prev,
             type: 'error',
@@ -119,8 +145,9 @@ const ToastProvider = ({ children }: { children: ReactNode }) => {
             isMultiStep: false,
         }));
         
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
             setToastVisible(false);
+            timeoutRef.current = null;
         }, 5000);
     };
 

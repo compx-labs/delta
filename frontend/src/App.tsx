@@ -11,12 +11,14 @@ import { CreatePage } from "./pages/CreatePage";
 import { ManagePage } from "./pages/ManagePage";
 import { DocsPage } from "./pages/DocsPage";
 import { ToastProvider } from "./context/toastContext";
+import { Toast } from "./components/Toast";
 
 function App() {
   return (
     <Providers>
       <ExplorerProvider>
         <ToastProvider>
+          <Toast />
           <PoolsProvider>
             <WalletContextProvider>
               <WalletConnectionModal />

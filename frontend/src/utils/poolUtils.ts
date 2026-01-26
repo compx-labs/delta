@@ -3,8 +3,10 @@ import { StakingClient } from "../contracts/staking/stakingClient";
 import { NETWORK_TOKEN, getAlgodServer } from "../constants/constants";
 import type { Network } from "../context/networkContext";
 import type { StakeInfoRecord } from "../contracts/staking/stakingClient";
+import type { StakingPoolState } from "../context/poolsContext";
 
 const PRECISION = BigInt(1_000_000_000_000_000); // PRECISION constant from contract (10^15)
+const SECONDS_PER_YEAR = BigInt(31_536_000); // Seconds in a year
 
 /**
  * Creates a StakingClient instance for reading state (no signer needed)
@@ -102,4 +104,110 @@ export function parseAmount(amount: string, decimals: number = 6): bigint {
   const fraction = (parts[1] || '').padEnd(decimals, '0').slice(0, decimals);
   
   return BigInt(whole) * BigInt(10 ** decimals) + BigInt(fraction);
+}
+
+/**
+ * Estimates the current rewardPerToken by simulating updatePool() call
+ * This mirrors the contract's updatePool() logic
+ */
+function estimateRewardPerToken(poolState: StakingPoolState, currentTimestamp: bigint): bigint {
+  const startTime = poolState.startTime || BigInt(0);
+  const endTime = poolState.endTime || BigInt(0);
+  const lastUpdateTime = poolState.lastUpdateTime || BigInt(0);
+  const totalStaked = poolState.totalStaked || BigInt(0);
+  const rewardPerToken = poolState.rewardPerToken || BigInt(0);
+  const accruedRewards = poolState.accruedRewards || BigInt(0);
+  const totalRewards = poolState.totalRewards || BigInt(0);
+  const aprBps = poolState.aprBps || BigInt(0);
+  const contractState = poolState.contractState || BigInt(0);
+
+  // If contract is not active, return current rewardPerToken
+  if (contractState === BigInt(0)) {
+    return rewardPerToken;
+  }
+
+  // Cap time to end time if we're past it
+  const cappedTime = currentTimestamp < endTime ? currentTimestamp : endTime;
+  
+  // If we haven't started yet, return current rewardPerToken
+  if (cappedTime <= startTime) {
+    return rewardPerToken;
+  }
+
+  // Calculate effective last update time
+  const effectiveLast = lastUpdateTime < startTime ? startTime : lastUpdateTime;
+  
+  // If no time has passed, return current rewardPerToken
+  if (cappedTime <= effectiveLast) {
+    return rewardPerToken;
+  }
+
+  // If no one has staked, return current rewardPerToken
+  if (totalStaked === BigInt(0)) {
+    return rewardPerToken;
+  }
+
+  // Calculate duration since last update
+  const duration = cappedTime - effectiveLast;
+
+  // Calculate reward rate from APR
+  // rewardRate = (totalStaked * aprBps / 10000) / SECONDS_PER_YEAR
+  const annualReward = (totalStaked * aprBps) / BigInt(10_000);
+  const rewardRate = annualReward / SECONDS_PER_YEAR;
+
+  // Calculate reward for this duration
+  let reward = duration * rewardRate;
+  
+  // Cap reward by remaining rewards
+  const remaining = totalRewards - accruedRewards;
+  if (reward > remaining) {
+    reward = remaining;
+  }
+
+  // If no reward, return current rewardPerToken
+  if (reward === BigInt(0)) {
+    return rewardPerToken;
+  }
+
+  // Calculate delta reward per token: (reward * PRECISION) / totalStaked
+  const deltaRPT = (reward * PRECISION) / totalStaked;
+  
+  // Return estimated reward per token
+  return rewardPerToken + deltaRPT;
+}
+
+/**
+ * Calculates estimated current rewards for a user
+ * This simulates what their rewards would be if updatePool() were called right now
+ * 
+ * @param poolState - Current pool state from contract
+ * @param userStakingInfo - User's current staking info (stakedAmount, rewardDebt)
+ * @param currentTimestamp - Current Unix timestamp in seconds (optional, defaults to now)
+ * @returns Estimated claimable rewards in smallest unit
+ */
+export function calculateEstimatedRewards(
+  poolState: StakingPoolState,
+  userStakingInfo: UserStakingInfo,
+  currentTimestamp?: bigint
+): bigint {
+  // Use current timestamp if not provided
+  const now = currentTimestamp || BigInt(Math.floor(Date.now() / 1000));
+  
+  // If user has no stake, return 0
+  if (userStakingInfo.stakedAmount === BigInt(0)) {
+    return BigInt(0);
+  }
+
+  // Estimate what rewardPerToken would be if updatePool() were called now
+  const estimatedRewardPerToken = estimateRewardPerToken(poolState, now);
+
+  // Calculate estimated accrued rewards: (stake * estimatedRewardPerToken / PRECISION)
+  const estimatedAccrued = (userStakingInfo.stakedAmount * estimatedRewardPerToken) / PRECISION;
+
+  // Calculate estimated claimable: estimatedAccrued - rewardDebt
+  const estimatedClaimable = estimatedAccrued > userStakingInfo.rewardDebt 
+    ? estimatedAccrued - userStakingInfo.rewardDebt 
+    : BigInt(0);
+
+  return estimatedClaimable;
 }

@@ -10,7 +10,7 @@ import { useNetwork } from '../context/networkContext'
 import { useWalletContext } from '../context/wallet'
 import { useToast } from '../context/toastContext'
 import { fetchMultipleAssetInfo } from '../utils/assetUtils'
-import { fetchUserStakingInfo, formatAmount } from '../utils/poolUtils'
+import { fetchUserStakingInfo, formatAmount, calculateEstimatedRewards } from '../utils/poolUtils'
 import { stake, unstake, claimRewards } from '../contracts/staking/user'
 import { StatusDot } from '../components/StatusDot'
 import { StatItem } from '../components/StatItem'
@@ -341,8 +341,14 @@ export function PoolDetailPage() {
       ? Number(userStakingInfo.stakedAmount) / (10 ** (stakedAssetInfo.decimals || 6))
       : 0
 
-    const claimableRewards = userStakingInfo?.claimableRewards
-      ? Number(userStakingInfo.claimableRewards) / (10 ** (rewardAssetInfo.decimals || 6))
+    // Calculate estimated rewards (since rewards only update on contract interaction)
+    // Always use estimated rewards when we have pool state and user info
+    const estimatedRewards = userStakingInfo && poolState
+      ? calculateEstimatedRewards(poolState, userStakingInfo)
+      : (userStakingInfo?.claimableRewards || BigInt(0))
+    
+    const claimableRewards = estimatedRewards > BigInt(0)
+      ? Number(estimatedRewards) / (10 ** (rewardAssetInfo.decimals || 6))
       : 0
 
     // Calculate rewards remaining (simplified - would need contract balance)
