@@ -26,7 +26,7 @@ const REGISTRY_BOX_FEE = 22_500n;
 const PLATFORM_FEE_BPS = 350n;
 const REWARD_AMOUNT = 5_000_000n;
 const DURATION = 2_000n;
-const STAKE_AMOUNT = 1_000_000n;
+const STAKE_AMOUNT = 10_000_000n;
 const NUM_STAKERS = 5;
 const MAX_FEE = microAlgo(250_000);
 const PRECISION = 1_000_000_000_000_000n;
@@ -71,7 +71,6 @@ describe("staking pools Testing - main flow", () => {
     const rewardPerToken = state.rewardPerToken || 0n;
     const accruedRewards = state.accruedRewards || 0n;
     const totalRewards = state.totalRewards || 0n;
-    const useApr = state.useApr || 0n;
     const aprBps = state.aprBps || 0n;
     const rewardRate = state.rewardRate || 0n;
 
@@ -102,10 +101,8 @@ describe("staking pools Testing - main flow", () => {
     }
 
     let currentRate = rewardRate;
-    if (useApr === 1n) {
-      const annualReward = (totalStaked * aprBps) / 10_000n;
-      currentRate = annualReward / SECONDS_PER_YEAR;
-    }
+    const annualReward = (totalStaked * aprBps) / 10_000n;
+    currentRate = annualReward / SECONDS_PER_YEAR;
 
     let reward = (cappedTime - effectiveLast) * currentRate;
     const remaining = totalRewards - accruedRewards;
@@ -153,7 +150,7 @@ describe("staking pools Testing - main flow", () => {
 
     const stakedAsset = await localnet.context.algorand.send.assetCreate({
       sender: poolAdmin.addr,
-      total: 10_000_000n,
+      total: 100_000_000n,
       decimals: 6,
       defaultFrozen: false,
       unitName: "STAKE",
@@ -199,6 +196,7 @@ describe("staking pools Testing - main flow", () => {
         stakedAssetId,
         rewardAssetId,
         rewardAmount: REWARD_AMOUNT,
+        aprBps: 10_200n,
         startTime: 0n,
         duration: DURATION,
         initialBalanceTxn,
@@ -268,7 +266,8 @@ describe("staking pools Testing - main flow", () => {
 
   test("stake, accrue rewards, claim, and unstake", async () => {
     const globalState = await stakingClient.state.global.getAll();
-    expect(globalState.rewardRate).toEqual(REWARD_AMOUNT / DURATION);
+    expect(globalState.rewardRate).toEqual(0n);
+    expect(globalState.aprBps).toEqual(10_200n);
     expect(globalState.contractState).toEqual(1n);
     expect(globalState.totalStaked).toEqual(0n);
     expect(globalState.numStakers).toEqual(0n);
@@ -340,7 +339,7 @@ describe("staking pools Testing - main flow", () => {
     expect(afterStakeState.numStakers).toEqual(BigInt(NUM_STAKERS));
     expect(afterStakeState.contractState).toEqual(1n);
 
-    await advanceRounds(5);
+    await advanceRounds(50);
 
     consoleLogger.debug("Claiming rewards and unstaking...");
     consoleLogger.debug("Remaining Staked:", afterStakeState.totalStaked);
@@ -357,6 +356,9 @@ describe("staking pools Testing - main flow", () => {
       const stakerDebt = stakerBox?.rewardDebt ?? 0n;
       const accrued = (stakerStake * preview.rewardPerToken) / PRECISION;
       const expectedPending = accrued > stakerDebt ? accrued - stakerDebt : 0n;
+      const platformFeeBps = globalBefore.platformFeeBps ?? 0n;
+      const expectedFee = (expectedPending * platformFeeBps) / 10_000n;
+      const expectedNet = expectedPending - expectedFee;
 
       stakingClient.algorand.setSignerFromAccount(staker);
       await stakingClient.send.claimRewards({
@@ -374,7 +376,7 @@ describe("staking pools Testing - main flow", () => {
 
       const rewardAfter = await getAssetBalance(algosdk.encodeAddress(staker.addr.publicKey), rewardAssetId);
       expect(rewardAfter).toBeGreaterThan(rewardBefore);
-      expect(rewardAfter - rewardBefore).toEqual(expectedPending);
+      expect(rewardAfter - rewardBefore).toEqual(expectedNet);
 
       const stakeBefore = await getAssetBalance(algosdk.encodeAddress(staker.addr.publicKey), stakedAssetId);
       await stakingClient.send.unstake({
@@ -401,5 +403,176 @@ describe("staking pools Testing - main flow", () => {
     const finalState = await stakingClient.state.global.getAll();
     expect(finalState.totalStaked).toEqual(0n);
     expect(finalState.rewardPerToken).toBeGreaterThan(0n);
+  });
+
+  test("staker restake, partial unstake, then full unstake", async () => {
+    const staker = stakers[0];
+    const stakerAddr = algosdk.encodeAddress(staker.addr.publicKey);
+
+    const restakePool = await deploy(poolAdmin, masterRepoClient.appId);
+    restakePool.algorand.setSignerFromAccount(poolAdmin);
+
+    const initialBalanceTxn = restakePool.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: restakePool.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "initial mbr - restake test",
+      maxFee: MAX_FEE,
+    });
+
+    const rewardFundingTxn = restakePool.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: restakePool.appClient.appAddress,
+      assetId: rewardAssetId,
+      amount: REWARD_AMOUNT,
+      note: "reward funding - restake test",
+      maxFee: MAX_FEE,
+    });
+
+    await restakePool.send.initApplication({
+      args: {
+        stakedAssetId,
+        rewardAssetId,
+        rewardAmount: REWARD_AMOUNT,
+        aprBps: 10_200n,
+        startTime: 0n,
+        duration: DURATION,
+        initialBalanceTxn,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await restakePool.send.fundRewards({
+      args: {
+        rewardFundingTxn,
+        rewardAmount: REWARD_AMOUNT,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await restakePool.send.setContractActive({
+      args: {},
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    localnet.algorand.setSignerFromAccount(poolAdmin);
+    await localnet.algorand.send.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: staker.addr,
+      assetId: stakedAssetId,
+      amount: STAKE_AMOUNT,
+      note: "fund staker",
+    });
+
+    restakePool.algorand.setSignerFromAccount(staker);
+    const firstStakeTxn = restakePool.algorand.createTransaction.assetTransfer({
+      sender: staker.addr,
+      receiver: restakePool.appClient.appAddress,
+      assetId: stakedAssetId,
+      amount: STAKE_AMOUNT,
+      note: "stake 1",
+      maxFee: MAX_FEE,
+    });
+    const firstMbrTxn = restakePool.algorand.createTransaction.payment({
+      sender: staker.addr,
+      receiver: restakePool.appClient.appAddress,
+      amount: microAlgo(BOX_FEE),
+      note: "box mbr 1",
+      maxFee: MAX_FEE,
+    });
+
+    await restakePool.send.stake({
+      args: {
+        stakeTxn: firstStakeTxn,
+        quantity: STAKE_AMOUNT,
+        mbrTxn: firstMbrTxn,
+      },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    let stateAfterFirst = await restakePool.state.global.getAll();
+    expect(stateAfterFirst.totalStaked).toEqual(STAKE_AMOUNT);
+    expect(stateAfterFirst.numStakers).toEqual(1n);
+
+    await advanceRounds(3);
+    restakePool.algorand.setSignerFromAccount(staker);
+
+    const secondStakeTxn = restakePool.algorand.createTransaction.assetTransfer({
+      sender: staker.addr,
+      receiver: restakePool.appClient.appAddress,
+      assetId: stakedAssetId,
+      amount: STAKE_AMOUNT,
+      note: "stake 2",
+      maxFee: MAX_FEE,
+    });
+    const secondMbrTxn = restakePool.algorand.createTransaction.payment({
+      sender: staker.addr,
+      receiver: restakePool.appClient.appAddress,
+      amount: microAlgo(BOX_FEE),
+      note: "box mbr 2",
+      maxFee: MAX_FEE,
+    });
+
+    await restakePool.send.stake({
+      args: {
+        stakeTxn: secondStakeTxn,
+        quantity: STAKE_AMOUNT,
+        mbrTxn: secondMbrTxn,
+      },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    let stateAfterSecond = await restakePool.state.global.getAll();
+    expect(stateAfterSecond.totalStaked).toEqual(STAKE_AMOUNT * 2n);
+    expect(stateAfterSecond.numStakers).toEqual(1n);
+
+    await advanceRounds(3);
+    restakePool.algorand.setSignerFromAccount(staker);
+
+    const partialUnstake = STAKE_AMOUNT / 2n;
+    await restakePool.send.unstake({
+      args: { quantity: partialUnstake },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    let stateAfterPartial = await restakePool.state.global.getAll();
+    expect(stateAfterPartial.totalStaked).toEqual(STAKE_AMOUNT * 2n - partialUnstake);
+    expect(stateAfterPartial.numStakers).toEqual(1n);
+
+    advanceRounds(3);
+    restakePool.algorand.setSignerFromAccount(staker);
+    const stakerBoxAfterPartial = await restakePool.state.box.stakers.value(stakerAddr);
+    expect(stakerBoxAfterPartial).toBeDefined();
+    expect(stakerBoxAfterPartial?.stake).toEqual(STAKE_AMOUNT * 2n - partialUnstake);
+    consoleLogger.debug("Staker box after partial unstake:", stakerBoxAfterPartial);
+
+    await restakePool.send.unstake({
+      args: { quantity: stakerBoxAfterPartial?.stake ?? 0n },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const stateAfterFull = await restakePool.state.global.getAll();
+    expect(stateAfterFull.totalStaked).toEqual(0n);
+    expect(stateAfterFull.numStakers).toEqual(0n);
+
+    await expect(restakePool.state.box.stakers.value(stakerAddr)).rejects.toThrowError();
   });
 });

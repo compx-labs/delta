@@ -80,7 +80,7 @@ describe("staking pools Testing - config", () => {
     stakingClient = await deploy(poolAdmin, masterRepoClient.appId);
   }, 30000);
 
-  test("initApplication sets fixed-rate params", async () => {
+  test("initApplication sets APR params", async () => {
     const initialBalanceTxn = stakingClient.algorand.createTransaction.payment({
       sender: poolAdmin.addr,
       receiver: stakingClient.appClient.appAddress,
@@ -103,6 +103,7 @@ describe("staking pools Testing - config", () => {
         stakedAssetId,
         rewardAssetId,
         rewardAmount: REWARD_AMOUNT,
+        aprBps: APR_BPS,
         startTime: 0n,
         duration: DURATION,
         initialBalanceTxn,
@@ -126,78 +127,9 @@ describe("staking pools Testing - config", () => {
     expect(globalState.stakedAssetId).toEqual(stakedAssetId);
     expect(globalState.rewardAssetId).toEqual(rewardAssetId);
     expect(globalState.totalRewards).toEqual(REWARD_AMOUNT);
-    expect(globalState.rewardRate).toEqual(REWARD_AMOUNT / DURATION);
-    expect(globalState.useApr).toEqual(0n);
-    expect(globalState.aprBps).toEqual(0n);
-    expect(globalState.contractState).toEqual(0n);
-  });
-
-  test("initApplicationApr sets APR params", async () => {
-    const aprAdmin = await localnet.context.generateAccount({ initialFunds: microAlgo(10_000_000) });
-    localnet.algorand.setSignerFromAccount(aprAdmin);
-    localnet.algorand.send.assetOptIn({
-      sender: aprAdmin.addr,
-      assetId: rewardAssetId,
-    });
-    localnet.algorand.setSignerFromAccount(poolAdmin);
-    localnet.algorand.send.assetTransfer({
-      sender: poolAdmin.addr,
-      receiver: aprAdmin.addr,
-      assetId: rewardAssetId,
-      amount: REWARD_AMOUNT,
-      note: "funding apr admin",
-    });
-
-    const stakingAprClient = await deploy(aprAdmin, masterRepoClient.appId);
-    stakingAprClient.algorand.setSignerFromAccount(aprAdmin);
-
-    const initialBalanceTxn = stakingAprClient.algorand.createTransaction.payment({
-      sender: aprAdmin.addr,
-      receiver: stakingAprClient.appClient.appAddress,
-      amount: microAlgo(INITIAL_PAY_AMOUNT),
-      note: "initial mbr",
-      maxFee: MAX_FEE,
-    });
-
-    const rewardFundingTxn = stakingAprClient.algorand.createTransaction.assetTransfer({
-      sender: aprAdmin.addr,
-      receiver: stakingAprClient.appClient.appAddress,
-      assetId: rewardAssetId,
-      amount: REWARD_AMOUNT,
-      note: "reward funding",
-      maxFee: MAX_FEE,
-    });
-
-    await stakingAprClient.send.initApplicationApr({
-      args: {
-        stakedAssetId,
-        rewardAssetId,
-        rewardAmount: REWARD_AMOUNT,
-        aprBps: APR_BPS,
-        startTime: 0n,
-        duration: DURATION,
-        initialBalanceTxn,
-      },
-      coverAppCallInnerTransactionFees: true,
-      populateAppCallResources: true,
-      maxFee: MAX_FEE,
-    });
-
-    await stakingAprClient.send.fundRewards({
-      args: {
-        rewardFundingTxn,
-        rewardAmount: REWARD_AMOUNT,
-      },
-      sender: aprAdmin.addr,
-      coverAppCallInnerTransactionFees: true,
-      populateAppCallResources: true,
-      maxFee: MAX_FEE,
-    });
-
-    const globalState = await stakingAprClient.state.global.getAll();
-    expect(globalState.useApr).toEqual(1n);
-    expect(globalState.aprBps).toEqual(APR_BPS);
     expect(globalState.rewardRate).toEqual(0n);
+    expect(globalState.aprBps).toEqual(APR_BPS);
+    expect(globalState.contractState).toEqual(0n);
   });
 
   test("registers staking with master repo", async () => {
