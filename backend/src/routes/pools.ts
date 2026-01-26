@@ -1,9 +1,9 @@
-import { Router, Request, Response } from 'express'
+import { Router, type Request, type Response } from 'express'
 import { supabase } from '../db/client.js'
 import { createPoolSchema, updatePoolSchema } from '../validators/pool.js'
 import type { CreatePoolRequest, UpdatePoolRequest } from '../types/pool.js'
 
-const router = Router()
+const router: Router = Router()
 
 // Create a new pool
 router.post('/', async (req: Request, res: Response) => {
@@ -117,7 +117,8 @@ router.get('/:id', async (req: Request, res: Response) => {
 // Get pool by app_id
 router.get('/app/:appId', async (req: Request, res: Response) => {
   try {
-    const appId = parseInt(req.params.appId, 10)
+    const appIdParam = req.params.appId
+    const appId = parseInt(Array.isArray(appIdParam) ? appIdParam[0] : appIdParam, 10)
 
     if (isNaN(appId)) {
       return res.status(400).json({ error: 'Invalid app ID' })
