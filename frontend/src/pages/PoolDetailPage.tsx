@@ -15,6 +15,7 @@ import { fetchUserStakingInfo, formatAmount, calculateEstimatedRewards, fetchAll
 import { stake, unstake, claimRewards } from '../contracts/staking/user'
 import { StatusDot } from '../components/StatusDot'
 import { StatItem } from '../components/StatItem'
+import { AnimButton } from '../components/AnimButton'
 import type { PoolDetail } from '../types/pool'
 
 type TabId = 'assets' | 'stakers' | 'contract'
@@ -235,30 +236,24 @@ function ActionsPanel({
       </div>
 
       {/* Primary Action Button */}
-      <button
-        onClick={handleAction}
-        disabled={isProcessing || !depositAmount || parseFloat(depositAmount) <= 0}
-        className={`w-full px-4 py-3 border-2 transition-colors mb-4 ${
-          isProcessing || !depositAmount || parseFloat(depositAmount) <= 0
-            ? 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'
-            : 'border-amber bg-amber text-off-white hover:bg-amber/90'
-        }`}
-      >
-        {isProcessing ? 'Processing...' : `${isWithdraw ? 'WITHDRAW' : 'DEPOSIT'} ${pool.depositAsset.symbol}`}
-      </button>
+      <div className="mb-4">
+        <AnimButton
+          text={isProcessing ? 'Processing...' : `${isWithdraw ? 'WITHDRAW' : 'DEPOSIT'} ${pool.depositAsset.symbol}`}
+          onClick={handleAction}
+          disabled={isProcessing || !depositAmount || parseFloat(depositAmount) <= 0}
+          variant="amber"
+          className="w-full"
+        />
+      </div>
 
       {/* Claim Rewards Button */}
-      <button
+      <AnimButton
+        text={isProcessing ? 'Processing...' : `Claim Rewards${totalClaimable > 0 ? ` (${pool.user.claimableRewards.map(r => `${r.amount.toFixed(2)} ${r.symbol}`).join(', ')})` : ''}`}
         onClick={onClaim}
         disabled={totalClaimable === 0 || isProcessing}
-        className={`w-full px-4 py-3 border-2 transition-colors ${
-          totalClaimable > 0 && !isProcessing
-            ? 'border-amber bg-amber text-off-white hover:bg-amber/90'
-            : 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'
-        }`}
-      >
-        {isProcessing ? 'Processing...' : `Claim Rewards${totalClaimable > 0 ? ` (${pool.user.claimableRewards.map(r => `${r.amount.toFixed(2)} ${r.symbol}`).join(', ')})` : ''}`}
-      </button>
+        variant="amber"
+        className="w-full"
+      />
     </div>
   )
 }
