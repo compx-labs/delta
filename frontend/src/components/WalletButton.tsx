@@ -170,7 +170,7 @@ const WalletButton: React.FC = () => {
         onMouseDown={() => {
           console.log('Button mousedown event');
         }}
-        className="h-10 px-4 bg-amber text-near-black text-sm font-medium hover:bg-off-white hover:text-near-black transition-colors flex items-center gap-2"
+        className="h-10 px-4 bg-amber text-off-white/80 text-sm font-medium  hover:text-off-white flex items-center gap-2"
         type="button"
       >
         <Wallet className="w-4 h-4" />
