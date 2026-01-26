@@ -130,7 +130,7 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
       default:
         return (
           <>
-            <Droplets className="w-4 h-4" />
+            <Droplets className="w-4 h-4 group-hover:text-near-black" />
             <span>Request {token.symbol}</span>
           </>
         );
@@ -148,11 +148,11 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
         >
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-slate-900 bg-opacity-90 backdrop-blur-sm"
+            className="fixed inset-0 bg-near-black/80 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
           />
 
@@ -162,25 +162,26 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Modal container */}
-            <div className="relative text-slate-600 cut-corners-lg bg-noise-dark border-2 border-slate-600 shadow-industrial overflow-hidden">
+            <div className="relative bg-near-black border-2 border-mid-grey/30 overflow-hidden">
               {/* Header */}
-              <div className="p-4 md:p-6 border-b-2 border-slate-600">
+              <div className="p-4 md:p-6 border-b-2 border-mid-grey/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-lg flex items-center justify-center border-2 border-slate-500">
-                      <Droplets className="w-5 h-5 text-cyan-400" />
+                    <div className="w-10 h-10 bg-near-black rounded-lg flex items-center justify-center border-2 border-mid-grey/30">
+                      <Droplets className="w-5 h-5 text-off-white" />
                     </div>
                     <div>
                       <h2
                         id="faucet-modal-title"
-                        className="text-lg md:text-xl font-mono font-bold text-white uppercase tracking-wide"
+                        className="text-lg md:text-xl font-medium text-off-white"
                       >
                         Resource Station
                       </h2>
-                      <p className="text-sm text-slate-300 font-mono">
+                      <p className="text-sm text-mid-grey">
                         Request testnet resources for delta missions
                       </p>
                     </div>
@@ -188,21 +189,21 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
 
                   <button
                     onClick={onClose}
-                    className="group relative p-2 rounded-lg hover:bg-slate-700 transition-all duration-150 border-2 border-slate-600"
+                    className="group p-2 hover:bg-off-white hover:text-near-black transition-colors border-2 border-mid-grey/30"
                   >
-                    <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors duration-150" />
+                    <X className="w-5 h-5 text-mid-grey group-hover:text-near-black transition-colors" />
                   </button>
                 </div>
               </div>
 
               {/* Wallet info */}
               {walletAddress && (
-                <div className="px-4 md:px-6 py-3 bg-slate-800/50 border-b-2 border-slate-600">
-                  <p className="text-sm text-slate-300 font-mono">
-                    <span className="text-cyan-400 font-medium uppercase tracking-wide">
+                <div className="px-4 md:px-6 py-3 border-b-2 border-mid-grey/30">
+                  <p className="text-sm text-mid-grey">
+                    <span className="text-off-white font-medium">
                       Wallet:
                     </span>{" "}
-                    <span className="text-white">
+                    <span className="text-off-white">
                       {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
                     </span>
                   </p>
@@ -221,10 +222,10 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                       transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
                       {/* Token card */}
-                      <div className="relative bg-slate-800 border-2 border-slate-600 rounded-lg p-4 hover:border-slate-500 hover:bg-slate-750 transition-all duration-150">
+                      <div className="relative bg-near-black border-2 border-mid-grey/30 p-4 transition-all duration-150">
                         {/* Token header */}
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-slate-600 to-slate-700 border-2 border-slate-500 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-near-black border-2 border-mid-grey/30 flex items-center justify-center">
                             <img
                               src={token.image}
                               alt={`${token.name} logo`}
@@ -237,13 +238,13 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                             />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-mono font-semibold text-white">
+                            <h3 className="font-medium text-off-white">
                               {token.symbol}
                             </h3>
-                            <p className="text-xs text-slate-400 font-mono">
+                            <p className="text-xs text-mid-grey">
                               {token.name}
                             </p>
-                            <p className="text-xs text-slate-500 font-mono">
+                            <p className="text-xs text-mid-grey/70">
                               ID: {token.id}
                             </p>
                           </div>
@@ -253,10 +254,10 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                         <button
                           onClick={() => handleTokenRequest(token)}
                           disabled={requestingTokens.has(token.id)}
-                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-mono font-semibold transition-all duration-150 border-2 ${
+                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 transition-all duration-150 group ${
                             requestingTokens.has(token.id)
-                              ? "bg-slate-700 border-slate-600 text-slate-400 cursor-not-allowed"
-                              : "bg-cyan-600 border-cyan-500 text-white hover:bg-cyan-500 hover:border-cyan-400"
+                              ? "bg-near-black border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50"
+                              : "bg-near-black border-mid-grey/30 text-off-white hover:bg-off-white hover:text-near-black hover:border-mid-grey/30"
                           }`}
                         >
                           {getButtonContent(token)}
@@ -268,14 +269,14 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="px-4 md:px-6 py-4 border-t-2 border-slate-600 bg-slate-800/50">
+              <div className="px-4 md:px-6 py-4 border-t-2 border-mid-grey/30">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-slate-400 font-mono">
+                  <p className="text-xs text-mid-grey">
                     Resources are for testnet only and have no real value
                   </p>
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white transition-all duration-150 font-mono text-sm"
+                    className="px-4 py-2 bg-near-black border-2 border-mid-grey/30 text-off-white hover:bg-off-white hover:text-near-black transition-colors text-sm group"
                   >
                     Close
                   </button>

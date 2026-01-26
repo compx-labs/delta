@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { PoolsTable } from '../components/PoolsTable'
 import { Dropdown } from '../components/Dropdown'
+import { AnimButton } from '../components/AnimButton'
 import { usePools } from '../context/poolsContext'
 import { useNetwork } from '../context/networkContext'
 import { fetchMultipleAssetInfo } from '../utils/assetUtils'
@@ -204,12 +205,10 @@ export function PoolsPage() {
             <h1 className="text-3xl font-medium text-off-white mb-2">Pools</h1>
             <p className="text-mid-grey">Permissionless reward distribution</p>
           </div>
-          <Link
-            to="/create"
-            className="inline-block px-6 py-3 bg-transparent border-2 border-white text-off-white font-medium hover:bg-white hover:text-near-black transition-colors text-center"
-          >
-            Create pool
-          </Link>
+          <AnimButton
+            text="Create pool"
+            onClick={() => navigate('/create')}
+          />
         </div>
 
         {/* Filters */}

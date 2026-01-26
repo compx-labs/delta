@@ -47,6 +47,8 @@ const WalletButton: React.FC = () => {
       activeWallet: !!activeWallet,
       isTestnet,
       selectedNetwork,
+      isTestnetType: typeof isTestnet,
+      shouldShowFaucet: isTestnet === true,
     });
   }, [walletContext, activeAccount, activeWallet, isTestnet, selectedNetwork]);
 
@@ -168,7 +170,7 @@ const WalletButton: React.FC = () => {
         onMouseDown={() => {
           console.log('Button mousedown event');
         }}
-        className="h-10 px-4 bg-amber text-near-black text-sm font-medium hover:bg-amber/90 transition-colors flex items-center gap-2"
+        className="h-10 px-4 bg-amber text-near-black text-sm font-medium hover:bg-off-white hover:text-near-black transition-colors flex items-center gap-2"
         type="button"
       >
         <Wallet className="w-4 h-4" />
@@ -183,10 +185,10 @@ const WalletButton: React.FC = () => {
       <button
         ref={buttonRef}
         onClick={toggleDropdown}
-        className="h-10 px-3 bg-transparent border-2 border-mid-grey/30 text-sm font-medium text-off-white hover:border-amber hover:text-amber transition-colors flex items-center gap-2 relative z-10"
+        className="h-10 px-3 bg-transparent border-2 border-mid-grey/30 text-sm font-medium text-off-white hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors flex items-center gap-2 relative z-10 group"
       >
         {/* Wallet/NFD icon */}
-        <div className="w-5 h-5 flex items-center justify-center border-2 border-mid-grey/30 overflow-hidden">
+        <div className="w-5 h-5 flex items-center justify-center border-2 border-mid-grey/30 group-hover:border-mid-grey/30 overflow-hidden">
           {nfdAvatar ? (
             <img
               src={nfdAvatar}
@@ -208,17 +210,17 @@ const WalletButton: React.FC = () => {
 
         {/* Address and wallet name */}
         <div className="hidden md:flex flex-col items-start">
-          <span className="text-xs font-medium text-off-white">
+          <span className="text-xs font-medium text-off-white group-hover:text-near-black">
             {formatDisplayName(activeAccount.address)}
           </span>
-          <span className="text-xs text-mid-grey">
+          <span className="text-xs text-mid-grey group-hover:text-near-black/70">
             {activeWallet.metadata.name}
           </span>
         </div>
 
         {/* Dropdown arrow */}
         <ChevronDown
-          className={`w-4 h-4 text-mid-grey transition-transform ${
+          className={`w-4 h-4 text-mid-grey group-hover:text-near-black transition-transform ${
             isDropdownOpen ? "rotate-180" : ""
           }`}
         />
@@ -230,10 +232,10 @@ const WalletButton: React.FC = () => {
           {isDropdownOpen && (
             <motion.div
               ref={dropdownRef}
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.2 }}
               className="fixed w-80 z-[9999]"
               style={{
                 top: dropdownPosition.top,
@@ -264,12 +266,12 @@ const WalletButton: React.FC = () => {
                     </div>
                     <button
                       onClick={copyAddress}
-                      className="p-2 hover:bg-mid-grey/10 border-2 border-mid-grey/30 transition-colors"
+                      className="p-2 hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 border-2 border-mid-grey/30 transition-colors group"
                     >
                       {copied ? (
-                        <Check className="w-4 h-4 text-amber" />
+                        <Check className="w-4 h-4 text-amber group-hover:text-near-black" />
                       ) : (
-                        <Copy className="w-4 h-4 text-mid-grey" />
+                        <Copy className="w-4 h-4 text-mid-grey group-hover:text-near-black" />
                       )}
                     </button>
                   </div>
@@ -280,51 +282,51 @@ const WalletButton: React.FC = () => {
                   {/* Network Select button */}
                   <button
                     onClick={handleNetworkSelect}
-                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:border-amber hover:text-amber transition-colors flex items-center gap-3 text-left"
+                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors flex items-center gap-3 text-left group"
                   >
-                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30">
+                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30 group-hover:border-mid-grey/30">
                       {isTestnet ? (
-                        <FlaskConical className="w-3 h-3 text-off-white" />
+                        <FlaskConical className="w-3 h-3 text-off-white group-hover:text-near-black" />
                       ) : (
-                        <Globe className="w-3 h-3 text-off-white" />
+                        <Globe className="w-3 h-3 text-off-white group-hover:text-near-black" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-off-white">
+                      <p className="text-xs font-medium text-off-white group-hover:text-near-black">
                         Switch Network
                       </p>
-                      <p className="text-xs text-mid-grey">
+                      <p className="text-xs text-mid-grey group-hover:text-near-black/70">
                         Current: {isTestnet ? 'Testnet' : 'Mainnet'}
                       </p>
                     </div>
                   </button>
 
                   {/* Faucet button - Only show on testnet */}
-                  {isTestnet ? (
+                  {selectedNetwork === 'testnet' && (
                     <button
                       onClick={handleFaucet}
-                      className="w-full h-12 px-4 bg-amber text-near-black hover:bg-amber/90 transition-colors flex items-center gap-3 text-left"
+                      className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors flex items-center gap-3 text-left group"
                     >
-                      <div className="w-6 h-6 flex items-center justify-center border-2 border-near-black/20">
-                        <Droplets className="w-3 h-3 text-near-black" />
+                      <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30 group-hover:border-mid-grey/30">
+                        <Droplets className="w-3 h-3 text-off-white group-hover:text-near-black" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-near-black">
+                        <p className="text-xs font-medium text-off-white group-hover:text-near-black">
                           Resource Station
                         </p>
-                        <p className="text-xs text-near-black/70">
+                        <p className="text-xs text-mid-grey group-hover:text-near-black/70">
                           Request testnet resources
                         </p>
                       </div>
                     </button>
-                  ) : null}
+                  )}
 
                   {/* Explorer Select button */}
                   <button
                     onClick={handleExplorerSelect}
-                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:border-amber hover:text-amber transition-colors flex items-center gap-3 text-left"
+                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors flex items-center gap-3 text-left group"
                   >
-                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30">
+                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30 group-hover:border-mid-grey/30">
                       <img 
                         src={EXPLORERS[selectedExplorer].logo} 
                         alt={EXPLORERS[selectedExplorer].name}
@@ -332,22 +334,22 @@ const WalletButton: React.FC = () => {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-off-white">
+                      <p className="text-xs font-medium text-off-white group-hover:text-near-black">
                         Select Explorer
                       </p>
-                      <p className="text-xs text-mid-grey">
+                      <p className="text-xs text-mid-grey group-hover:text-near-black/70">
                         Current: {EXPLORERS[selectedExplorer].name}
                       </p>
                     </div>
                   </button>
 
                   {/* Social Icons */}
-                  <div className="flex items-center justify-evenly pt-2 pb-2">
+                  <div className="grid grid-cols-4 gap-2 pt-2 pb-2">
                     <a
                       href="https://x.com/compxlabs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors"
                       title="X (Twitter)"
                     >
                       <svg
@@ -366,7 +368,7 @@ const WalletButton: React.FC = () => {
                       href="https://discord.gg/pSG93C6UN8"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors"
                       title="Discord"
                     >
                       <svg
@@ -385,7 +387,7 @@ const WalletButton: React.FC = () => {
                       href="https://t.me/compxlabs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors"
                       title="Telegram"
                     >
                       <svg
@@ -404,7 +406,7 @@ const WalletButton: React.FC = () => {
                       href="https://github.com/compx-labs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors"
                       title="GitHub"
                     >
                       <svg
@@ -424,16 +426,16 @@ const WalletButton: React.FC = () => {
                   {/* Disconnect button */}
                   <button
                     onClick={handleDisconnect}
-                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:border-mid-grey hover:text-mid-grey transition-colors flex items-center gap-3 text-left"
+                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:bg-off-white hover:text-near-black hover:border-mid-grey/30 transition-colors flex items-center gap-3 text-left group"
                   >
-                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30">
-                      <LogOut className="w-3 h-3 text-off-white" />
+                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30 group-hover:border-mid-grey/30">
+                      <LogOut className="w-3 h-3 text-off-white group-hover:text-near-black" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-off-white">
+                      <p className="text-xs font-medium text-off-white group-hover:text-near-black">
                         Disconnect
                       </p>
-                      <p className="text-xs text-mid-grey">
+                      <p className="text-xs text-mid-grey group-hover:text-near-black/70">
                         Disconnect your wallet
                       </p>
                     </div>
