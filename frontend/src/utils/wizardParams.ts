@@ -67,8 +67,8 @@ export interface ValidationResult {
   errors: ValidationError[]
 }
 
-const MIN_DURATION_DAYS = 1
-const MAX_DURATION_DAYS = 730 // 2 years
+// const MIN_DURATION_DAYS = 1
+// const MAX_DURATION_DAYS = 730 // 2 years
 const MAX_APR = 1000
 
 export function validateStep(step: string, params: Partial<WizardParams>): ValidationResult {

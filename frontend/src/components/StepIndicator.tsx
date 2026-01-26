@@ -1,5 +1,3 @@
-import React from 'react'
-
 interface StepIndicatorProps {
   steps: string[]
   currentStep: number
@@ -21,7 +19,7 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
       
       {/* Step circles */}
       <div className="relative flex items-center justify-between w-full">
-        {steps.map((step, index) => {
+        {steps.map((_step, index) => {
           const stepNum = index + 1
           const isActive = stepNum === currentStep
           const isCompleted = stepNum < currentStep

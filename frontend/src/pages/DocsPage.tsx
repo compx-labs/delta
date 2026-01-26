@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { AppNav } from '../components/AppNav';
 import { Footer } from '../components/Footer';
-import { useNetwork } from '../context/networkContext';
 import {
   OverviewSection,
   PoolsSection,
@@ -28,7 +27,6 @@ import {
 
 export function DocsPage() {
   const [activeSection, setActiveSection] = useState<string>("overview");
-  const { isTestnet } = useNetwork();
 
   const sections = [
     {

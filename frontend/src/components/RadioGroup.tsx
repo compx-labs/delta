@@ -1,5 +1,3 @@
-import { ReactNode } from 'react'
-
 interface RadioOption {
   value: string
   label: string

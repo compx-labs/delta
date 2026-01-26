@@ -17,7 +17,6 @@ export function PoolsPage() {
   const navigate = useNavigate()
   const { networkConfig } = useNetwork()
   const { 
-    registeredAppIds, 
     poolStates, 
     isLoadingMasterRepo, 
     isLoadingPools,

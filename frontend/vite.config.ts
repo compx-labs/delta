@@ -17,6 +17,6 @@ export default defineConfig({
   // Handle client-side routing
   server: {
     port: 5138,
-    historyApiFallback: true,
   },
+  // Note: Vite handles client-side routing automatically, no historyApiFallback needed
 });

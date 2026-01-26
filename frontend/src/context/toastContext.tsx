@@ -43,7 +43,7 @@ const ToastProvider = ({ children }: { children: ReactNode }) => {
         description: null,
     });
     const [toastVisible, setToastVisible] = useState(false);
-    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = React.useRef<number | null>(null);
 
     const openToast = (toast: ToastInterface) => {
         // Clear any existing timeout
