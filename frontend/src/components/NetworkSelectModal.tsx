@@ -67,7 +67,7 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
             className="relative w-full max-w-lg mx-4"
           >
             {/* Modal Panel */}
-            <div className="bg-near-black border border-mid-grey/30 p-6">
+            <div className="bg-near-black border-2 border-mid-grey/30 p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-medium text-off-white uppercase tracking-wide">
@@ -75,14 +75,14 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
                 </h2>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-mid-grey/10 border border-mid-grey/30 transition-colors"
+                  className="p-2 hover:bg-mid-grey/10 border-2 border-mid-grey/30 transition-colors"
                 >
                   <X className="w-5 h-5 text-mid-grey hover:text-off-white" />
                 </button>
               </div>
 
               {/* Description */}
-              <div className="bg-amber/10 border border-amber/30 p-4 mb-6">
+              <div className="bg-amber/10 border-2 border-amber/30 p-4 mb-6">
                 <p className="text-amber text-sm">
                   ⚠️ Switching networks will reload the application and disconnect your wallet.
                 </p>
@@ -98,14 +98,14 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
                     <button
                       key={network.id}
                       onClick={() => handleSelectNetwork(network.id)}
-                      className={`w-full p-4 border transition-all duration-150 flex items-center gap-4 ${
+                      className={`w-full p-4 border-2 transition-all duration-150 flex items-center gap-4 ${
                         isSelected
                           ? "bg-near-black border-amber"
                           : "bg-near-black border-mid-grey/30 hover:border-mid-grey/50"
                       }`}
                     >
                       {/* Network Icon */}
-                      <div className="w-12 h-12 flex items-center justify-center border border-mid-grey/30 bg-near-black">
+                      <div className="w-12 h-12 flex items-center justify-center border-2 border-mid-grey/30 bg-near-black">
                         <Icon className="w-6 h-6 text-off-white" />
                       </div>
 

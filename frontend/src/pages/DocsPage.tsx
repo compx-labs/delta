@@ -117,7 +117,7 @@ export function DocsPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <div className="bg-near-black border border-mid-grey/30 sticky top-24">
+            <div className="bg-near-black border-2 border-mid-grey/30 sticky top-24">
               <div className="p-4 md:p-6">
                 <h3 className="text-lg font-medium text-off-white uppercase tracking-wide mb-4 flex items-center gap-2">
                   <Target className="w-5 h-5 text-amber" />
@@ -133,8 +133,8 @@ export function DocsPage() {
                         onClick={() => setActiveSection(section.id)}
                         className={`w-full text-left p-3 transition-all duration-150 group ${
                           isActive 
-                            ? 'bg-amber/20 border border-amber/30 text-amber' 
-                            : 'hover:bg-mid-grey/10 text-mid-grey hover:text-off-white border border-transparent'
+                            ? 'bg-amber/20 border-2 border-amber/30 text-amber' 
+                            : 'hover:bg-mid-grey/10 text-mid-grey hover:text-off-white border-2 border-transparent'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -164,7 +164,7 @@ export function DocsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <div className="bg-near-black border border-mid-grey/30">
+            <div className="bg-near-black border-2 border-mid-grey/30">
               <div className="p-6 md:p-8">
                 {/* Overview Section */}
                 {activeSection === "overview" && <OverviewSection />}

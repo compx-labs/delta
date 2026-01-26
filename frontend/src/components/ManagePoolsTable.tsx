@@ -67,6 +67,33 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
     navigate(`/manage?poolId=${poolId}`)
   }
 
+  const handleResumeCreation = (poolId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigate(`/create?resume=${poolId}`)
+  }
+
+  const getCreationStatus = (pool: ManagePoolListItem) => {
+    if (!pool.creation_status || pool.creation_status === 'completed') {
+      return null
+    }
+    
+    if (pool.creation_status === 'failed') {
+      return { label: 'Failed', canResume: true }
+    }
+    
+    if (pool.creation_status === 'creating' || pool.creation_status === 'pending') {
+      const steps = [
+        pool.step_create_completed,
+        pool.step_init_completed,
+        pool.step_fund_activate_register_completed,
+      ]
+      const completedSteps = steps.filter(Boolean).length
+      return { label: `Creating (${completedSteps}/3)`, canResume: true }
+    }
+    
+    return null
+  }
+
   // Filter and sort pools
   let filtered = [...pools]
   
@@ -107,10 +134,10 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden md:block border border-mid-grey/30 overflow-x-auto">
+      <div className="hidden md:block border-2 border-mid-grey/30 overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-mid-grey/30">
+            <tr className="border-b-2 border-mid-grey/30">
               <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Pool</th>
               <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Status</th>
               <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">Stakers</th>
@@ -124,7 +151,7 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
               <tr
                 key={pool.id}
                 onClick={(e) => handleRowClick(pool.id, e)}
-                className="border-b border-mid-grey/20 cursor-pointer transition-colors hover:bg-off-white/5 focus-within:bg-off-white/5"
+                className="border-b-2 border-mid-grey/20 cursor-pointer transition-colors hover:bg-off-white/5 focus-within:bg-off-white/5"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -142,9 +169,26 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
                   </div>
                 </td>
                 <td className="px-4 py-4">
-                  <div className="flex items-center gap-2">
-                    <StatusDot status={pool.status} />
-                    <span className="text-sm text-mid-grey capitalize">{pool.status}</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={pool.status} />
+                      <span className="text-sm text-mid-grey capitalize">{pool.status}</span>
+                    </div>
+                    {getCreationStatus(pool) && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-amber">
+                          {getCreationStatus(pool)?.label}
+                        </span>
+                        {getCreationStatus(pool)?.canResume && (
+                          <button
+                            onClick={(e) => handleResumeCreation(pool.id, e)}
+                            className="text-xs text-amber hover:text-amber/80 underline"
+                          >
+                            Resume
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-4 text-right text-mid-grey text-sm">
@@ -174,7 +218,7 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
           return (
             <div
               key={pool.id}
-              className="border border-mid-grey/30 bg-near-black"
+              className="border-2 border-mid-grey/30 bg-near-black"
             >
               {/* Collapsed Row */}
               <div
@@ -192,6 +236,21 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
                     <StatusDot status={pool.status} />
                     <span className="font-medium text-off-white truncate">{pool.displayName}</span>
                   </div>
+                  {getCreationStatus(pool) && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-amber">
+                        {getCreationStatus(pool)?.label}
+                      </span>
+                      {getCreationStatus(pool)?.canResume && (
+                        <button
+                          onClick={(e) => handleResumeCreation(pool.id, e)}
+                          className="text-xs text-amber hover:text-amber/80 underline"
+                        >
+                          Resume
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm">
                     <span className={`${
                       pool.status === 'active' && pool.apr !== null ? 'text-amber font-medium' : 'text-mid-grey'
@@ -226,7 +285,7 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
 
               {/* Expanded Content */}
               {isExpanded && (
-                <div className="px-4 pb-4 border-t border-mid-grey/20 pt-4 space-y-3">
+                <div className="px-4 pb-4 border-t-2 border-mid-grey/20 pt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-mid-grey">Stakers:</span>
@@ -241,12 +300,21 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
                     <span className="text-mid-grey text-sm">Remaining rewards:</span>
                     <div className="mt-1 text-off-white">{formatRewards(pool.rewardsRemaining)}</div>
                   </div>
-                  <button
-                    onClick={(e) => handleManageClick(pool.id, e)}
-                    className="w-full px-4 py-2 bg-amber text-off-white font-medium hover:bg-amber/90 transition-colors text-sm"
-                  >
-                    Manage pool
-                  </button>
+                  {getCreationStatus(pool)?.canResume ? (
+                    <button
+                      onClick={(e) => handleResumeCreation(pool.id, e)}
+                      className="w-full px-4 py-2 bg-amber text-off-white font-medium hover:bg-amber/90 transition-colors text-sm"
+                    >
+                      Resume Creation
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => handleManageClick(pool.id, e)}
+                      className="w-full px-4 py-2 bg-amber text-off-white font-medium hover:bg-amber/90 transition-colors text-sm"
+                    >
+                      Manage pool
+                    </button>
+                  )}
                 </div>
               )}
             </div>

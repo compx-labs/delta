@@ -56,7 +56,7 @@ export function Dropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white hover:border-mid-grey transition-colors flex items-center justify-between gap-2 focus:outline-none focus:ring-1 focus:ring-amber"
+        className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white hover:border-mid-grey transition-colors flex items-center justify-between gap-2 focus:outline-none focus:ring-1 focus:ring-accent/50"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={label || placeholder}
@@ -78,7 +78,7 @@ export function Dropdown({
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 border border-mid-grey/30 bg-near-black shadow-lg min-w-full w-fit">
+        <div className="absolute z-50 left-0 right-0 mt-1 border-2 border-mid-grey/30 bg-near-black shadow-lg min-w-full w-fit">
           <ul
             role="listbox"
             className="py-1"

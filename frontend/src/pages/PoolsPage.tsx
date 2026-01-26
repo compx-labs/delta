@@ -8,6 +8,7 @@ import { Dropdown } from '../components/Dropdown'
 import { usePools } from '../context/poolsContext'
 import { useNetwork } from '../context/networkContext'
 import { fetchMultipleAssetInfo } from '../utils/assetUtils'
+import { getAllPools } from '../services/poolApiService'
 import type { PoolListItem } from '../types/pool'
 import type { PoolFilters } from '../types/pool'
 
@@ -50,6 +51,26 @@ export function PoolsPage() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
+  // Fetch pool metadata from database
+  const { 
+    data: poolMetadataMap = new Map(),
+    isLoading: isLoadingMetadata 
+  } = useQuery({
+    queryKey: ['poolMetadata'],
+    queryFn: async () => {
+      const pools = await getAllPools()
+      // Create a map keyed by app_id for quick lookup
+      const metadataMap = new Map<number, typeof pools[0]>()
+      pools.forEach(pool => {
+        if (pool.app_id) {
+          metadataMap.set(pool.app_id, pool)
+        }
+      })
+      return metadataMap
+    },
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  })
+
   // Transform pool states to PoolListItem format
   const pools = useMemo<PoolListItem[]>(() => {
     const poolList: PoolListItem[] = []
@@ -83,12 +104,17 @@ export function PoolsPage() {
       // In a real implementation, you'd need to get asset prices
       const tvlUsd = state.totalStaked ? Number(state.totalStaked) / 1_000_000 : null // Simplified
 
-      // Create display name
+      // Create display name - just show the token to be staked
       const stakedSymbol = stakedAssetInfo?.symbol || `Asset ${state.stakedAssetId}`
       const rewardSymbol = rewardAssetInfo?.symbol || `Asset ${state.rewardAssetId}`
-      const displayName = isLpToken 
-        ? stakedSymbol 
-        : `${stakedSymbol} / ${rewardSymbol}`
+      
+      // Get metadata from database if available
+      const appIdNum = parseInt(appIdStr, 10)
+      const metadata = poolMetadataMap.get(appIdNum)
+      
+      // Use database name if available, otherwise fall back to display name
+      const displayName = metadata?.name || stakedSymbol
+      const stakeToken = metadata?.stake_token || state.stakedAssetId.toString()
 
       poolList.push({
         id: appIdStr,
@@ -107,11 +133,14 @@ export function PoolsPage() {
         apr,
         tvlUsd,
         status,
+        // Database metadata
+        name: metadata?.name,
+        stakeToken,
       })
     })
 
     return poolList
-  }, [poolStates, assetInfoMap])
+  }, [poolStates, assetInfoMap, poolMetadataMap])
 
   // Apply filters
   const filteredPools = useMemo(() => {
@@ -132,10 +161,12 @@ export function PoolsPage() {
       const searchLower = filters.search.toLowerCase()
       filtered = filtered.filter(
         pool =>
+          (pool.name || pool.displayName).toLowerCase().includes(searchLower) ||
           pool.displayName.toLowerCase().includes(searchLower) ||
           pool.id.toLowerCase().includes(searchLower) ||
           pool.depositAsset.symbol.toLowerCase().includes(searchLower) ||
-          pool.rewardAssets.some(asset => asset.symbol.toLowerCase().includes(searchLower))
+          pool.rewardAssets.some(asset => asset.symbol.toLowerCase().includes(searchLower)) ||
+          (pool.stakeToken && pool.stakeToken.toLowerCase().includes(searchLower))
       )
     }
 
@@ -149,7 +180,7 @@ export function PoolsPage() {
     return filtered
   }, [pools, filters])
 
-  const loading = isLoadingMasterRepo || isLoadingPools || isLoadingAssets
+  const loading = isLoadingMasterRepo || isLoadingPools || isLoadingAssets || isLoadingMetadata
 
   const handleSelectPool = (id: string) => {
     navigate(`/pool?poolId=${id}`)
@@ -175,7 +206,7 @@ export function PoolsPage() {
           </div>
           <Link
             to="/create"
-            className="inline-block px-6 py-3 bg-amber text-off-white font-medium hover:bg-amber/90 transition-colors text-center"
+            className="inline-block px-6 py-3 bg-transparent border-2 border-white text-off-white font-medium hover:bg-white hover:text-near-black transition-colors text-center"
           >
             Create pool
           </Link>
@@ -210,14 +241,14 @@ export function PoolsPage() {
               placeholder="Search by asset or pool ID"
               value={filters.search || ''}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
+              className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-accent/50"
             />
           </div>
         </div>
 
         {/* Error states */}
         {(masterRepoError || poolsError) && (
-          <div className="py-8 px-4 bg-red-500/10 border border-red-500/30 rounded text-red-400 mb-6">
+          <div className="py-8 px-4 bg-red-500/10 border-2 border-red-500/30 rounded text-red-400 mb-6">
             <p className="font-medium mb-1">Error loading pools</p>
             <p className="text-sm text-red-300">
               {masterRepoError?.message || poolsError?.message || 'Unknown error occurred'}

@@ -39,7 +39,7 @@ export const FaucetSection: React.FC = () => {
           <li>Wait for transaction confirmation</li>
         </ol>
 
-        <div className="border border-amber/30 bg-amber/10 p-4 mb-6">
+        <div className="border-2 border-amber/30 bg-amber/10 p-4 mb-6">
           <p className="text-amber text-sm">
             <strong>Testnet Only:</strong> These tokens have no real-world value and are for
             testing purposes only. Rate limit: one request every 24 hours per wallet address.
@@ -48,7 +48,7 @@ export const FaucetSection: React.FC = () => {
 
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Getting Started Checklist</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="border border-mid-grey/30 p-4">
+          <div className="border-2 border-mid-grey/30 p-4">
             <h4 className="text-off-white font-medium mb-3">For Staking</h4>
             <ul className="list-disc list-inside text-mid-grey text-sm space-y-1">
               <li>Get ALGO for transaction fees</li>
@@ -57,7 +57,7 @@ export const FaucetSection: React.FC = () => {
               <li>Browse pools and start staking</li>
             </ul>
           </div>
-          <div className="border border-mid-grey/30 p-4">
+          <div className="border-2 border-mid-grey/30 p-4">
             <h4 className="text-off-white font-medium mb-3">For Pool Creation</h4>
             <ul className="list-disc list-inside text-mid-grey text-sm space-y-1">
               <li>Get ALGO for transaction fees</li>

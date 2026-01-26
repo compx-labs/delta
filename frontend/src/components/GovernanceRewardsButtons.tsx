@@ -76,7 +76,7 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
   }, [walletAddress]);
 
   return (
-    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-mid-grey/30">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-mid-grey/30">
       <div className="w-12 h-12 bg-near-black rounded-full flex items-center justify-center border-2 border-mid-grey/30 overflow-hidden flex-shrink-0">
         {nfdAvatar ? (
           <img
@@ -134,9 +134,9 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
             )}
           </button>
           {/* Tooltip */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border-2 border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
             Your current FLUX tier
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-amber"></div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-2 border-transparent border-b-amber"></div>
           </div>
         </div>
 
@@ -181,9 +181,9 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
             )}
           </button>
           {/* Tooltip */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border-2 border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
             Your current CompX Rewards level
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-amber"></div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-2 border-transparent border-b-amber"></div>
           </div>
         </div>
       </div>

@@ -21,7 +21,7 @@ export function AppNav() {
   ]
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-mid-grey/20 bg-near-black">
+    <nav className="sticky top-0 z-50 border-b-2 border-mid-grey/20 bg-near-black">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link to="/" className="flex items-center gap-2 text-xl font-medium text-off-white hover:text-amber transition-colors">
@@ -86,14 +86,14 @@ export function AppNav() {
 
       {/* Mobile Navigation Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-near-black border-t border-mid-grey/20">
+        <div className="md:hidden bg-near-black border-t-2 border-mid-grey/20">
           <div className="container mx-auto px-4 pt-4 pb-4 space-y-3">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-4 py-3 border transition-colors ${
+                className={`block px-4 py-3 border-2 transition-colors ${
                   isActive(item.path)
                     ? 'border-amber bg-amber/10 text-amber font-medium'
                     : 'border-mid-grey/30 text-mid-grey hover:text-off-white hover:border-mid-grey'

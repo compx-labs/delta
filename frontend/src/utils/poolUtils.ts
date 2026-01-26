@@ -1,8 +1,6 @@
 import * as algokit from "@algorandfoundation/algokit-utils";
 import { StakingClient } from "../contracts/staking/stakingClient";
 import { NETWORK_TOKEN, getAlgodServer } from "../constants/constants";
-import type { Network } from "../context/networkContext";
-import type { StakeInfoRecord } from "../contracts/staking/stakingClient";
 import type { StakingPoolState } from "../context/poolsContext";
 
 const PRECISION = BigInt(1_000_000_000_000_000); // PRECISION constant from contract (10^15)

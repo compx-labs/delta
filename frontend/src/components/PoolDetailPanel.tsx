@@ -144,12 +144,12 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
       },
       depositAsset: {
         symbol: stakedSymbol,
-        id: poolState.stakedAssetId.toString(),
+        id: poolState.stakedAssetId ? poolState.stakedAssetId.toString() : '',
         decimals: stakedAssetInfo.decimals,
       },
       rewardAssets: [{
         symbol: rewardSymbol,
-        id: poolState.rewardAssetId.toString(),
+        id: poolState.rewardAssetId ? poolState.rewardAssetId.toString() : '',
         decimals: rewardAssetInfo.decimals,
       }],
       rewardsRemaining: rewardsRemaining > 0 ? [{
@@ -487,7 +487,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
   if (!poolState) {
     return (
       <div className="fixed inset-0 bg-near-black/80 z-50 flex items-center justify-center p-4 md:p-0">
-        <div className="bg-near-black border border-mid-grey/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="bg-near-black border-2 border-mid-grey/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="p-8 text-center text-mid-grey">Loading...</div>
         </div>
       </div>
@@ -497,7 +497,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
   if (!pool) {
     return (
       <div className="fixed inset-0 bg-near-black/80 z-50 flex items-center justify-center p-4 md:p-0">
-        <div className="bg-near-black border border-mid-grey/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="bg-near-black border-2 border-mid-grey/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-medium text-off-white">Pool Details</h2>
@@ -525,7 +525,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
         }
       }}
     >
-      <div className="bg-near-black border border-mid-grey/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-near-black border-2 border-mid-grey/30 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 md:p-8">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
@@ -551,7 +551,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
           </div>
 
           {/* Key Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 pb-8 border-b border-mid-grey/30">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 pb-8 border-b-2 border-mid-grey/30">
             <div>
               <div className="text-xs text-mid-grey mb-1">APR</div>
               <div className={`text-xl font-medium ${
@@ -585,11 +585,11 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
           </div>
 
           {/* Action Panel */}
-          <div className="mb-8 pb-8 border-b border-mid-grey/30">
+          <div className="mb-8 pb-8 border-b-2 border-mid-grey/30">
             <h3 className="text-lg font-medium text-off-white mb-4">Actions</h3>
             <div className="space-y-4">
               {/* Info Display */}
-              <div className="space-y-2 pb-3 border-b border-mid-grey/20">
+              <div className="space-y-2 pb-3 border-b-2 border-mid-grey/20">
                 <div className="flex justify-between text-sm">
                   <span className="text-mid-grey">APR</span>
                   <span className={`${pool.status === 'active' && pool.apr !== null ? 'text-amber' : 'text-mid-grey'}`}>
@@ -619,12 +619,12 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
                     onChange={(e) => setStakeAmount(e.target.value)}
                     placeholder="0.00"
                     disabled={isProcessing}
-                    className="flex-1 px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber disabled:opacity-50"
+                    className="flex-1 px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber disabled:opacity-50"
                   />
                   <button
                     onClick={() => setStakeAmount(isUnstake ? pool.user.stakedAmount.toString() : walletBalance)}
                     disabled={isProcessing}
-                    className="px-4 py-2 border border-mid-grey/30 text-mid-grey hover:text-off-white transition-colors disabled:opacity-50"
+                    className="px-4 py-2 border-2 border-mid-grey/30 text-mid-grey hover:text-off-white transition-colors disabled:opacity-50"
                   >
                     MAX
                   </button>
@@ -633,7 +633,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
               
               {/* Transaction Details - only show when amount is entered */}
               {stakeAmountNum > 0 && (
-                <div className="border-t border-mid-grey/20 pt-4 space-y-2">
+                <div className="border-t-2 border-mid-grey/20 pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-mid-grey">
                       {isUnstake ? 'Amount to Withdraw' : 'Stake to be Added'}
@@ -679,7 +679,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
                 <button
                   onClick={() => setIsUnstake(false)}
                   disabled={isProcessing}
-                  className={`flex-1 px-4 py-2 border transition-colors ${
+                  className={`flex-1 px-4 py-2 border-2 transition-colors ${
                     !isUnstake
                       ? 'border-amber bg-amber text-off-white'
                       : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey hover:text-off-white'
@@ -690,7 +690,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
                 <button
                   onClick={() => setIsUnstake(true)}
                   disabled={isProcessing}
-                  className={`flex-1 px-4 py-2 border transition-colors ${
+                  className={`flex-1 px-4 py-2 border-2 transition-colors ${
                     isUnstake
                       ? 'border-amber bg-amber text-off-white'
                       : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey hover:text-off-white'
@@ -702,7 +702,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
               <button
                 onClick={isUnstake ? handleUnstake : handleStake}
                 disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
-                className={`w-full px-4 py-2 border transition-colors mb-4 ${
+                className={`w-full px-4 py-2 border-2 transition-colors mb-4 ${
                   isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0
                     ? 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'
                     : 'border-amber bg-amber text-off-white hover:bg-amber/90'
@@ -713,7 +713,7 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
               <button
                 onClick={handleClaim}
                 disabled={totalClaimable === 0 || isProcessing}
-                className={`w-full px-4 py-2 border transition-colors ${
+                className={`w-full px-4 py-2 border-2 transition-colors ${
                   totalClaimable > 0 && !isProcessing
                     ? 'border-amber bg-amber text-off-white hover:bg-amber/90'
                     : 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'

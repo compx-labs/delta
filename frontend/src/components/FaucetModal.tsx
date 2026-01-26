@@ -167,10 +167,10 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
             {/* Modal container */}
             <div className="relative text-slate-600 cut-corners-lg bg-noise-dark border-2 border-slate-600 shadow-industrial overflow-hidden">
               {/* Header */}
-              <div className="p-4 md:p-6 border-b border-slate-600">
+              <div className="p-4 md:p-6 border-b-2 border-slate-600">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-lg flex items-center justify-center border border-slate-500">
+                    <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-lg flex items-center justify-center border-2 border-slate-500">
                       <Droplets className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div>
@@ -188,7 +188,7 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
 
                   <button
                     onClick={onClose}
-                    className="group relative p-2 rounded-lg hover:bg-slate-700 transition-all duration-150 border border-slate-600"
+                    className="group relative p-2 rounded-lg hover:bg-slate-700 transition-all duration-150 border-2 border-slate-600"
                   >
                     <X className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors duration-150" />
                   </button>
@@ -197,7 +197,7 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
 
               {/* Wallet info */}
               {walletAddress && (
-                <div className="px-4 md:px-6 py-3 bg-slate-800/50 border-b border-slate-600">
+                <div className="px-4 md:px-6 py-3 bg-slate-800/50 border-b-2 border-slate-600">
                   <p className="text-sm text-slate-300 font-mono">
                     <span className="text-cyan-400 font-medium uppercase tracking-wide">
                       Wallet:
@@ -221,10 +221,10 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                       transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
                       {/* Token card */}
-                      <div className="relative bg-slate-800 border border-slate-600 rounded-lg p-4 hover:border-slate-500 hover:bg-slate-750 transition-all duration-150">
+                      <div className="relative bg-slate-800 border-2 border-slate-600 rounded-lg p-4 hover:border-slate-500 hover:bg-slate-750 transition-all duration-150">
                         {/* Token header */}
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-slate-600 to-slate-700 border border-slate-500 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-slate-600 to-slate-700 border-2 border-slate-500 flex items-center justify-center">
                             <img
                               src={token.image}
                               alt={`${token.name} logo`}
@@ -253,7 +253,7 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                         <button
                           onClick={() => handleTokenRequest(token)}
                           disabled={requestingTokens.has(token.id)}
-                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-mono font-semibold transition-all duration-150 border ${
+                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-mono font-semibold transition-all duration-150 border-2 ${
                             requestingTokens.has(token.id)
                               ? "bg-slate-700 border-slate-600 text-slate-400 cursor-not-allowed"
                               : "bg-cyan-600 border-cyan-500 text-white hover:bg-cyan-500 hover:border-cyan-400"
@@ -268,14 +268,14 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="px-4 md:px-6 py-4 border-t border-slate-600 bg-slate-800/50">
+              <div className="px-4 md:px-6 py-4 border-t-2 border-slate-600 bg-slate-800/50">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-400 font-mono">
                     Resources are for testnet only and have no real value
                   </p>
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 rounded-lg bg-slate-700 border border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white transition-all duration-150 font-mono text-sm"
+                    className="px-4 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white transition-all duration-150 font-mono text-sm"
                   >
                     Close
                   </button>

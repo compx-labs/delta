@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export function Nav() {
   return (
-    <nav className="sticky top-0 z-50 border-b border-mid-grey/20 bg-near-black">
+    <nav className="sticky top-0 z-50 border-b-2 border-mid-grey/20 bg-near-black">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link to="/" className="text-xl font-medium text-off-white hover:text-amber transition-colors">

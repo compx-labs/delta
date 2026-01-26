@@ -14,7 +14,7 @@ export function Panel({ title, children, className = '', variant = 'light' }: Pa
   const textColor = isDark ? 'text-mid-grey' : 'text-slate-grey'
   
   return (
-    <div className={`border ${borderColor} p-6 ${className}`}>
+    <div className={`border-2 ${borderColor} p-6 ${className}`}>
       <h3 className={`text-lg font-medium ${titleColor} mb-4`}>{title}</h3>
       <div className={`${textColor} leading-relaxed`}>{children}</div>
     </div>

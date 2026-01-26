@@ -130,7 +130,7 @@ export function ManagePage() {
           </div>
 
           {/* Summary Panel */}
-          <div className="border border-mid-grey/30 p-6 mb-8 space-y-4">
+          <div className="border-2 border-mid-grey/30 p-6 mb-8 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <CopyField
                 label="Pool ID"
@@ -275,7 +275,7 @@ export function ManagePage() {
                   placeholder="Search by pool or asset"
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
+                  className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
                 />
               </div>
             </div>

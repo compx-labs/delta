@@ -95,7 +95,7 @@ function ActionsPanel({
   const showNetworkFeeInfo = !isWithdraw && stakeAmount > 0
 
   return (
-    <div className="border border-mid-grey/30 p-6">
+    <div className="border-2 border-mid-grey/30 p-6">
       <h2 className="text-lg font-medium text-off-white mb-6">Pool Actions</h2>
       
       {/* Deposit/Withdraw Toggle */}
@@ -103,7 +103,7 @@ function ActionsPanel({
         <button
           onClick={() => setIsWithdraw(false)}
           disabled={isProcessing}
-          className={`flex-1 px-4 py-2 border transition-colors ${
+          className={`flex-1 px-4 py-2 border-2 transition-colors ${
             !isWithdraw
               ? 'border-amber bg-amber text-off-white'
               : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey hover:text-off-white'
@@ -114,7 +114,7 @@ function ActionsPanel({
         <button
           onClick={() => setIsWithdraw(true)}
           disabled={isProcessing}
-          className={`flex-1 px-4 py-2 border transition-colors ${
+          className={`flex-1 px-4 py-2 border-2 transition-colors ${
             isWithdraw
               ? 'border-amber bg-amber text-off-white'
               : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey hover:text-off-white'
@@ -136,12 +136,12 @@ function ActionsPanel({
             onChange={(e) => setDepositAmount(e.target.value)}
             placeholder="0.00"
             disabled={isProcessing}
-            className="flex-1 px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber disabled:opacity-50"
+            className="flex-1 px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber disabled:opacity-50"
           />
           <button 
             onClick={handleMax}
             disabled={isProcessing}
-            className="px-4 py-2 border border-mid-grey/30 text-mid-grey hover:text-off-white transition-colors disabled:opacity-50"
+            className="px-4 py-2 border-2 border-mid-grey/30 text-mid-grey hover:text-off-white transition-colors disabled:opacity-50"
           >
             MAX
           </button>
@@ -170,7 +170,7 @@ function ActionsPanel({
         {/* Transaction Details - only show when amount is entered */}
         {stakeAmount > 0 && (
           <>
-            <div className="border-t border-mid-grey/20 pt-3 mt-3">
+            <div className="border-t-2 border-mid-grey/20 pt-3 mt-3">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-mid-grey">
                   {isWithdraw ? 'Amount to Withdraw' : 'Stake to be Added'}
@@ -218,7 +218,7 @@ function ActionsPanel({
       <button
         onClick={handleAction}
         disabled={isProcessing || !depositAmount || parseFloat(depositAmount) <= 0}
-        className={`w-full px-4 py-3 border transition-colors mb-4 ${
+        className={`w-full px-4 py-3 border-2 transition-colors mb-4 ${
           isProcessing || !depositAmount || parseFloat(depositAmount) <= 0
             ? 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'
             : 'border-amber bg-amber text-off-white hover:bg-amber/90'
@@ -231,7 +231,7 @@ function ActionsPanel({
       <button
         onClick={onClaim}
         disabled={totalClaimable === 0 || isProcessing}
-        className={`w-full px-4 py-3 border transition-colors ${
+        className={`w-full px-4 py-3 border-2 transition-colors ${
           totalClaimable > 0 && !isProcessing
             ? 'border-amber bg-amber text-off-white hover:bg-amber/90'
             : 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'
@@ -884,7 +884,7 @@ export function PoolDetailPage() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="w-full px-6 py-4 bg-amber text-off-white font-medium border-t border-amber/20"
+            className="w-full px-6 py-4 bg-amber text-off-white font-medium border-t-2 border-amber/20"
           >
             Deposit | Withdraw | Claim
           </button>
@@ -897,8 +897,8 @@ export function PoolDetailPage() {
               className="lg:hidden fixed inset-0 bg-near-black/80 z-50"
               onClick={() => setIsDrawerOpen(false)}
             />
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-near-black border-t border-mid-grey/30 rounded-t-lg max-h-[85vh] overflow-y-auto">
-              <div className="sticky top-0 bg-near-black border-b border-mid-grey/30 px-6 py-4 flex items-center justify-between">
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-near-black border-t-2 border-mid-grey/30 rounded-t-lg max-h-[85vh] overflow-y-auto">
+              <div className="sticky top-0 bg-near-black border-b-2 border-mid-grey/30 px-6 py-4 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-off-white">Pool Actions</h2>
                 <button
                   onClick={() => setIsDrawerOpen(false)}

@@ -27,14 +27,14 @@ export function CopyField({ label, value, className = '', variant = 'light' }: C
       <div className="flex items-center gap-2">
         <code className={`flex-1 px-3 py-2 text-sm break-all ${
           isDark 
-            ? 'bg-off-white/5 border border-mid-grey/20 text-off-white' 
+            ? 'bg-off-white/5 border-2 border-mid-grey/20 text-off-white' 
             : 'bg-near-black text-off-white'
         }`}>
           {value}
         </code>
         <button
           onClick={handleCopy}
-          className={`px-3 py-2 border border-mid-grey/30 transition-colors text-sm ${
+          className={`px-3 py-2 border-2 border-mid-grey/30 transition-colors text-sm ${
             isDark
               ? 'text-mid-grey hover:border-mid-grey hover:text-off-white'
               : 'text-slate-grey hover:border-mid-grey hover:text-near-black'

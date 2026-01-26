@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { X, CheckCircle2, AlertCircle, Loader2, CheckCircle } from 'lucide-react'
 import { useToast } from '../context/toastContext'
 
 export function Toast() {
@@ -16,6 +16,8 @@ export function Toast() {
         return <AlertCircle className="w-5 h-5 text-red-500" />
       case 'loading':
         return <Loader2 className="w-5 h-5 text-amber animate-spin" />
+      case 'multi-step':
+        return <Loader2 className="w-5 h-5 text-amber animate-spin" />
       default:
         return null
     }
@@ -28,6 +30,7 @@ export function Toast() {
       case 'error':
         return 'border-red-500/50'
       case 'loading':
+      case 'multi-step':
         return 'border-amber/50'
       default:
         return 'border-mid-grey/30'
@@ -41,6 +44,7 @@ export function Toast() {
       case 'error':
         return 'bg-red-500/10'
       case 'loading':
+      case 'multi-step':
         return 'bg-amber/10'
       default:
         return 'bg-near-black'
@@ -56,7 +60,7 @@ export function Toast() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className={`relative bg-near-black border ${getBorderColor()} ${getBgColor()} p-4 shadow-lg`}
+            className={`relative bg-near-black border-2 ${getBorderColor()} ${getBgColor()} p-4 shadow-lg`}
           >
             <div className="flex items-start gap-3">
               {/* Icon */}
@@ -74,10 +78,43 @@ export function Toast() {
                     {toast.description}
                   </p>
                 )}
+                {/* Multi-step progress */}
+                {toast.type === 'multi-step' && toast.steps && (
+                  <div className="mt-3 space-y-2">
+                    {toast.steps.map((step, index) => {
+                      const isCurrent = step.id === toast.currentStepId
+                      const isCompleted = toast.currentStepIndex !== undefined && index < toast.currentStepIndex
+                      
+                      return (
+                        <div
+                          key={step.id}
+                          className={`flex items-center gap-2 text-xs ${
+                            isCompleted
+                              ? 'text-green-500'
+                              : isCurrent
+                              ? 'text-amber'
+                              : 'text-mid-grey'
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                          ) : isCurrent ? (
+                            <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
+                          ) : (
+                            <div className="w-4 h-4 flex-shrink-0 rounded-full border-2 border-mid-grey" />
+                          )}
+                          <span className={isCurrent ? 'font-medium' : ''}>
+                            {step.name}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Close button */}
-              {toast.type !== 'loading' && (
+              {toast.type !== 'loading' && toast.type !== 'multi-step' && (
                 <button
                   onClick={closeToast}
                   className="flex-shrink-0 p-1 hover:bg-mid-grey/10 rounded transition-colors"

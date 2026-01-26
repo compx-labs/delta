@@ -16,6 +16,9 @@ export interface PoolListItem {
   apr: number | null
   tvlUsd: number | null
   status: PoolStatus
+  // Database metadata
+  name?: string // Pool name from database
+  stakeToken?: string // Stake token ID from database
 }
 
 export interface PoolDetail {
@@ -49,6 +52,8 @@ export interface PoolFilters {
   search?: string
 }
 
+export type CreationStatus = 'pending' | 'creating' | 'completed' | 'failed'
+
 export interface ManagePoolListItem {
   id: string
   displayName: string
@@ -62,6 +67,12 @@ export interface ManagePoolListItem {
   createdAt: string
   stakeAsset: { symbol: string; id: string }
   rewardAssets: Array<{ symbol: string; id: string }>
+  // Creation tracking fields
+  creation_status?: CreationStatus
+  step_create_completed?: boolean
+  step_init_completed?: boolean
+  step_fund_activate_register_completed?: boolean
+  app_id?: number | null
 }
 
 export interface ManagePoolDetail extends ManagePoolListItem {

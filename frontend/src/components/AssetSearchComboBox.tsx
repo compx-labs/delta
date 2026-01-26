@@ -101,7 +101,7 @@ export function AssetSearchComboBox({
       
       {selectedAsset ? (
         <div className="flex items-center gap-2">
-          <div className="flex-1 px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white flex items-center justify-between">
+          <div className="flex-1 px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white flex items-center justify-between">
             <span className="text-sm">
               {selectedAsset.symbol} ({selectedAsset.id.slice(0, 8)}...)
             </span>
@@ -129,11 +129,11 @@ export function AssetSearchComboBox({
             }}
             onFocus={() => setIsOpen(true)}
             placeholder={placeholder}
-            className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
+            className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
           />
           
           {isOpen && (
-            <div className="absolute z-50 left-0 right-0 mt-1 border border-mid-grey/30 bg-near-black shadow-lg max-h-64 overflow-y-auto">
+            <div className="absolute z-50 left-0 right-0 mt-1 border-2 border-mid-grey/30 bg-near-black shadow-lg max-h-64 overflow-y-auto">
               {loading ? (
                 <div className="px-4 py-3 text-mid-grey text-sm">Searching...</div>
               ) : assets.length === 0 && searchQuery.trim().length > 0 ? (

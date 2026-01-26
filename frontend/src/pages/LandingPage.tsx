@@ -41,7 +41,7 @@ export function LandingPage() {
               </Link>
               <Link
                 to="/create"
-                className="inline-block px-6 py-3 border border-mid-grey text-off-white font-medium hover:border-slate-grey hover:text-mid-grey transition-colors text-center"
+                className="inline-block px-6 py-3 border-2 border-mid-grey text-off-white font-medium hover:border-slate-grey hover:text-mid-grey transition-colors text-center"
               >
                 Create a pool
               </Link>
@@ -60,7 +60,7 @@ export function LandingPage() {
 
       {/* Stats Strip */}
       {(stats.activePools !== null || stats.totalValueStaked !== null || stats.rewardsDistributed !== null || stats.averageAPR !== null) && (
-        <section className="border-b border-mid-grey/20 py-8">
+        <section className="border-b-2 border-mid-grey/20 py-8">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <StatItem label="Active pools" value={stats.activePools ?? '--'} />

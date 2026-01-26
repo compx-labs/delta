@@ -55,7 +55,6 @@ export class MasterRepo extends Contract {
 
   @abimethod({ allowActions: "NoOp" })
   registerContract(app: Application, mbrTxn: gtxn.PaymentTxn): void {
-    assert(op.Txn.sender === this.admin_address.value, "Only admin can register");
     assert(!this.registered_contracts(app).exists, "Already registered");
 
     assertMatch(mbrTxn, {

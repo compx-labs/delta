@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useWallet } from '@txnlab/use-wallet-react'
+import { useQuery } from '@tanstack/react-query'
+import { TransactionSigner } from 'algosdk'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { StepIndicator } from '../components/StepIndicator'
@@ -11,38 +14,77 @@ import { ReviewRow } from '../components/ReviewRow'
 import { PreflightChecklist } from '../components/PreflightChecklist'
 import { readParams, writeParams, validateStep, type WizardParams } from '../utils/wizardParams'
 import { getAssets } from '../services/assetService'
+import { createPool as createPoolMetadata, updatePool } from '../services/poolApiService'
+import { useNetwork, type Network } from '../context/networkContext'
+import { fetchAccountBalances } from '../services/balanceService'
+import { 
+  createPool as createPoolContract, 
+  initPoolApr, 
+  fundRewardsActivateAndRegister 
+} from '../contracts/staking/user'
+import { MASTER_REPO_APP_ID } from '../constants/constants'
+import { useToast } from '../context/toastContext'
+import { getPoolById } from '../services/poolApiService'
 
 const STEPS = ['Type', 'Assets', 'Rewards', 'Metadata', 'Review']
 
 export function CreatePoolWizardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { activeAccount, activeWallet, transactionSigner } = useWallet()
+  const { networkConfig } = useNetwork()
+  const { openMultiStepToast, updateStep, completeMultiStep, failMultiStep } = useToast()
   const [params, setParams] = useState<Partial<WizardParams>>(() => readParams(searchParams))
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [assets, setAssets] = useState<{ stake?: Asset; reward?: Asset }>({})
   const [isSigning, setIsSigning] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [resumePoolId, setResumePoolId] = useState<string | null>(null)
+  const [resumePool, setResumePool] = useState<{ id: string; app_id: number | null; step_create_completed?: boolean; step_init_completed?: boolean; step_fund_activate_register_completed?: boolean } | null>(null)
 
   const currentStep = parseInt(params.step || '1', 10)
 
   useEffect(() => {
     setParams(readParams(searchParams))
+    const resumeId = searchParams.get('resume')
+    if (resumeId) {
+      setResumePoolId(resumeId)
+      // Load pool data for resume
+      getPoolById(resumeId).then(pool => {
+        setResumePool(pool)
+        // Pre-populate params from pool data
+        setParams(prev => ({
+          ...prev,
+          stakeAssetId: pool.stake_token,
+          rewardAssetId: pool.reward_token,
+          totalRewards: pool.total_rewards.toString(),
+          poolName: pool.name,
+          websiteUrl: pool.website_url || undefined,
+          description: pool.description || undefined,
+          tags: pool.tags?.join(', ') || undefined,
+        }))
+      }).catch(err => {
+        console.error('Failed to load pool for resume:', err)
+        setCreateError('Failed to load pool data')
+      })
+    }
   }, [searchParams])
 
   useEffect(() => {
     // Load asset details when IDs are available
     if (params.stakeAssetId) {
-      getAssets(params.stakeAssetId).then(results => {
+      getAssets(params.stakeAssetId, networkConfig).then(results => {
         const asset = results.find(a => a.id === params.stakeAssetId)
         if (asset) setAssets(prev => ({ ...prev, stake: asset }))
       })
     }
     if (params.rewardAssetId) {
-      getAssets(params.rewardAssetId).then(results => {
+      getAssets(params.rewardAssetId, networkConfig).then(results => {
         const asset = results.find(a => a.id === params.rewardAssetId)
         if (asset) setAssets(prev => ({ ...prev, reward: asset }))
       })
     }
-  }, [params.stakeAssetId, params.rewardAssetId])
+  }, [params.stakeAssetId, params.rewardAssetId, networkConfig])
 
   const updateParams = (updates: Partial<WizardParams>) => {
     const newParams = writeParams(searchParams, { ...params, ...updates })
@@ -79,13 +121,226 @@ export function CreatePoolWizardPage() {
   }
 
   const handleCreatePool = async () => {
+    // Validate all required fields
+    const validation = validateStep('5', params)
+    if (!validation.ok) {
+      const errors: Record<string, string> = {}
+      validation.errors.forEach(err => {
+        errors[err.field] = err.message
+      })
+      setValidationErrors(errors)
+      return
+    }
+
+    if (!params.stakeAssetId || !params.rewardAssetId || !params.totalRewards || !params.poolName || !params.targetApr) {
+      setCreateError('Missing required fields')
+      return
+    }
+
+    if (!activeAccount?.address || !activeWallet || !transactionSigner) {
+      setCreateError('Please connect your wallet')
+      return
+    }
+
+    if (!MASTER_REPO_APP_ID) {
+      setCreateError('Master repo app ID not configured')
+      return
+    }
+
     setIsSigning(true)
-    // Placeholder - replace with real implementation
-    setTimeout(() => {
+    setCreateError(null)
+
+    // Define the steps for multi-step toast
+    const steps = [
+      {
+        id: 'create',
+        name: 'Create Pool Application',
+        description: 'Creating the pool smart contract application...',
+      },
+      {
+        id: 'init',
+        name: 'Initialize Pool',
+        description: 'Initializing pool with APR configuration...',
+      },
+      {
+        id: 'fund-activate-register',
+        name: 'Fund Rewards & Activate',
+        description: 'Funding rewards, activating pool, and registering with master repo...',
+      },
+    ]
+
+    // Open multi-step toast
+    openMultiStepToast(resumePoolId ? 'Resuming Pool Creation' : 'Creating Pool', steps)
+
+    let createdPoolMetadata: { id: string; app_id?: number | null; creation_status?: string } | null = null
+
+    try {
+      const address = activeAccount.address
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const signer = transactionSigner as any as TransactionSigner
+
+      // Parse tags from comma-separated string to array
+      const tags = params.tags 
+        ? params.tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
+        : undefined
+
+      // Calculate APR in basis points (targetApr is a percentage)
+      const aprBps = Math.floor(parseFloat(params.targetApr) * 100)
+
+      // Calculate start time and duration
+      const startTime = params.startMode === 'scheduled' && params.startDate
+        ? Math.floor(new Date(params.startDate).getTime() / 1000)
+        : Math.floor(Date.now() / 1000)
+
+      // For target APR mode, we need a duration - use a default of 1 year (365 days)
+      // This can be adjusted based on your requirements
+      const duration = 365 * 24 * 60 * 60 // 1 year in seconds
+
+      // Get asset decimals
+      const rewardAssetDecimals = assets.reward?.decimals || 6
+      const rewardAmount = parseFloat(params.totalRewards)
+
+      // Initial balance for the pool (minimum balance for app account)
+      const initialBalance = 1_000_000 // 1 ALGO in microAlgos
+
+      // Step 1: Create or resume pool metadata
+      if (resumePoolId && resumePool) {
+        // Resuming existing pool
+        createdPoolMetadata = resumePool as { id: string; app_id?: number | null; creation_status?: string }
+        await updatePool(createdPoolMetadata.id, {
+          creation_status: 'creating',
+        })
+        console.log('Resuming pool creation:', createdPoolMetadata)
+      } else {
+        // Create new pool metadata
+        const poolData = {
+          stake_token: params.stakeAssetId,
+          reward_token: params.rewardAssetId,
+          total_rewards: rewardAmount,
+          name: params.poolName,
+          created_by: address, // Always use wallet address
+          website_url: params.websiteUrl || undefined,
+          description: params.description || undefined,
+          tags: tags && tags.length > 0 ? tags : undefined,
+        }
+        const newPool = await createPoolMetadata(poolData)
+        await updatePool(newPool.id, {
+          creation_status: 'creating',
+        })
+        createdPoolMetadata = { ...newPool, creation_status: 'creating' }
+        console.log('Pool metadata created:', createdPoolMetadata)
+      }
+
+      // Determine which steps need to be executed based on resume state
+      let poolAppId: string
+      
+      if (resumePool?.app_id && resumePool?.step_create_completed) {
+        // Resume: app already created, use existing app_id
+        poolAppId = resumePool.app_id.toString()
+        console.log('Resuming with existing app ID:', poolAppId)
+      } else {
+        // Step 2: Transaction Group 1 - Create pool application
+        console.log('Creating pool application...')
+        updateStep('create')
+        poolAppId = await createPoolContract({
+          address,
+          signer,
+          masterRepoAppId: Number(MASTER_REPO_APP_ID),
+          adminAddress: address,
+        })
+        console.log('Pool created with app ID:', poolAppId)
+
+        // Update backend with app_id and mark step as completed
+        await updatePool(createdPoolMetadata.id, {
+          app_id: parseInt(poolAppId, 10),
+          step_create_completed: true,
+        })
+      }
+
+      if (resumePool?.step_init_completed) {
+        // Resume: init already completed, skip
+        console.log('Init step already completed, skipping...')
+        updateStep('init')
+      } else {
+        // Step 3: Transaction Group 2 - Initialize pool
+        console.log('Initializing pool...')
+        updateStep('init')
+        await initPoolApr({
+          address,
+          signer,
+          appId: parseInt(poolAppId, 10),
+          stakedAssetId: parseInt(params.stakeAssetId, 10),
+          rewardAssetId: parseInt(params.rewardAssetId, 10),
+          rewardAssetDecimals,
+          rewardAmount,
+          aprBps,
+          startTime,
+          duration,
+          initialBalance,
+        })
+        console.log('Pool initialized')
+
+        // Mark init step as completed
+        await updatePool(createdPoolMetadata.id, {
+          step_init_completed: true,
+        })
+      }
+
+      if (resumePool?.step_fund_activate_register_completed) {
+        // Resume: final step already completed, skip
+        console.log('Fund/activate/register step already completed, skipping...')
+        updateStep('fund-activate-register')
+      } else {
+        // Step 4: Transaction Group 3 - Fund rewards, activate pool, and register
+        console.log('Funding rewards, activating pool, and registering...')
+        updateStep('fund-activate-register')
+        await fundRewardsActivateAndRegister({
+          address,
+          signer,
+          poolAppId: parseInt(poolAppId, 10),
+          masterRepoAppId: Number(MASTER_REPO_APP_ID),
+          rewardAssetId: parseInt(params.rewardAssetId, 10),
+          rewardAmount,
+          rewardAssetDecimals,
+        })
+        console.log('Pool funded, activated, and registered')
+
+        // Mark final step as completed and set status to completed
+        await updatePool(createdPoolMetadata.id, {
+          step_fund_activate_register_completed: true,
+          creation_status: 'completed',
+        })
+      }
+
+      // Complete multi-step toast
+      completeMultiStep('Pool created successfully!')
+
+      // Navigate to pools page after a short delay to show success toast
+      setTimeout(() => {
+        navigate('/pools')
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to create pool:', error)
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to create pool. Please try again.'
+      
+      // Update pool status to failed if we have a pool ID
+      if (createdPoolMetadata?.id) {
+        try {
+          await updatePool(createdPoolMetadata.id, {
+            creation_status: 'failed',
+          })
+        } catch (updateError) {
+          console.error('Failed to update pool status:', updateError)
+        }
+      }
+      
+      setCreateError(errorMessage)
+      failMultiStep(errorMessage)
+    } finally {
       setIsSigning(false)
-      // Navigate to pools page or show success
-      navigate('/pools')
-    }, 2000)
+    }
   }
 
   const renderStepContent = () => {
@@ -93,13 +348,13 @@ export function CreatePoolWizardPage() {
       case 1:
         return <Step1Type params={params} updateParams={updateParams} errors={validationErrors} />
       case 2:
-        return <Step2Assets params={params} updateParams={updateParams} errors={validationErrors} assets={assets} setAssets={setAssets} />
+        return <Step2Assets params={params} updateParams={updateParams} errors={validationErrors} assets={assets} setAssets={setAssets} networkConfig={networkConfig} />
       case 3:
         return <Step3Rewards params={params} updateParams={updateParams} errors={validationErrors} rewardAsset={assets.reward} />
       case 4:
         return <Step4Metadata params={params} updateParams={updateParams} errors={validationErrors} />
       case 5:
-        return <Step5Review params={params} assets={assets} />
+        return <Step5Review params={params} assets={assets} networkConfig={networkConfig} />
       default:
         return null
     }
@@ -116,8 +371,13 @@ export function CreatePoolWizardPage() {
 
           <StepIndicator steps={STEPS} currentStep={currentStep} />
 
-          <div className="border border-mid-grey/30 p-8 mb-8">
+          <div className="border-2 border-mid-grey/30 p-8 mb-8">
             {renderStepContent()}
+            {createError && (
+              <div className="mt-4 p-4 border-2 border-red-500/50 bg-red-500/10 text-red-400 text-sm">
+                {createError}
+              </div>
+            )}
           </div>
 
           {/* Footer Actions */}
@@ -125,7 +385,7 @@ export function CreatePoolWizardPage() {
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
-              className={`px-6 py-2 border transition-colors ${
+              className={`px-6 py-2 border-2 transition-colors ${
                 currentStep === 1
                   ? 'border-mid-grey/30 text-mid-grey cursor-not-allowed'
                   : 'border-mid-grey/30 text-off-white hover:border-mid-grey'
@@ -192,25 +452,32 @@ function Step2Assets({
   errors,
   assets,
   setAssets,
+  networkConfig,
 }: {
   params: Partial<WizardParams>
   updateParams: (updates: Partial<WizardParams>) => void
   errors: Record<string, string>
   assets: { stake?: Asset; reward?: Asset }
   setAssets: React.Dispatch<React.SetStateAction<{ stake?: Asset; reward?: Asset }>>
+  networkConfig: Network
 }) {
   const handleStakeAssetSelect = async (assetId: string) => {
     updateParams({ stakeAssetId: assetId })
-    const results = await getAssets(assetId)
+    const results = await getAssets(assetId, networkConfig)
     const asset = results.find(a => a.id === assetId)
     if (asset) setAssets(prev => ({ ...prev, stake: asset }))
   }
 
   const handleRewardAssetSelect = async (assetId: string) => {
     updateParams({ rewardAssetId: assetId })
-    const results = await getAssets(assetId)
+    const results = await getAssets(assetId, networkConfig)
     const asset = results.find(a => a.id === assetId)
     if (asset) setAssets(prev => ({ ...prev, reward: asset }))
+  }
+
+  // Create a network-aware asset provider function
+  const assetProvider = async (query: string) => {
+    return getAssets(query, networkConfig)
   }
 
   const showSameAssetWarning = params.stakeAssetId === params.rewardAssetId && params.stakeAssetId
@@ -221,7 +488,7 @@ function Step2Assets({
       <AssetSearchComboBox
         value={params.stakeAssetId}
         onChange={handleStakeAssetSelect}
-        assetsProvider={getAssets}
+        assetsProvider={assetProvider}
         label="Stake Asset"
         placeholder="Search by symbol, name, or asset ID"
       />
@@ -230,20 +497,20 @@ function Step2Assets({
       <AssetSearchComboBox
         value={params.rewardAssetId}
         onChange={handleRewardAssetSelect}
-        assetsProvider={getAssets}
+        assetsProvider={assetProvider}
         label="Reward Asset"
         placeholder="Search by symbol, name, or asset ID"
       />
       {errors.rewardAssetId && <div className="text-sm text-mid-grey">{errors.rewardAssetId}</div>}
 
       {showSameAssetWarning && (
-        <div className="p-3 border border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
+        <div className="p-3 border-2 border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
           Stake and reward assets are the same.
         </div>
       )}
 
       {showLpWarning && (
-        <div className="p-3 border border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
+        <div className="p-3 border-2 border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
           Selected stake asset does not appear to be an LP token.
         </div>
       )}
@@ -265,27 +532,13 @@ function Step3Rewards({
 }) {
   const startMode = params.startMode || 'now'
 
-  const calculateEmissionRate = () => {
-    if (!params.totalRewards || !params.endDate || !params.startDate && params.startMode !== 'now') return null
-    
-    const totalRewards = parseFloat(params.totalRewards)
-    if (isNaN(totalRewards)) return null
-
-    const endDate = new Date(params.endDate)
-    const startDate = params.startMode === 'scheduled' && params.startDate
-      ? new Date(params.startDate)
-      : new Date()
-    
-    const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    if (durationDays <= 0) return null
-
-    const perDay = totalRewards / durationDays
-    const perHour = perDay / 24
-
-    return { perDay, perHour }
-  }
-
-  const emissionRate = calculateEmissionRate()
+  // Ensure endMode is always set to targetApr
+  useEffect(() => {
+    if (params.endMode !== 'targetApr') {
+      updateParams({ endMode: 'targetApr' })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.endMode])
 
   return (
     <div className="space-y-6">
@@ -304,10 +557,9 @@ function Step3Rewards({
           <button
             type="button"
             onClick={() => {
-              setStartMode('now')
               updateParams({ startMode: 'now', startDate: undefined })
             }}
-            className={`px-4 py-2 border transition-colors ${
+            className={`px-4 py-2 border-2 transition-colors ${
               startMode === 'now'
                 ? 'border-amber bg-amber/10 text-amber'
                 : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey'
@@ -320,7 +572,7 @@ function Step3Rewards({
             onClick={() => {
               updateParams({ startMode: 'scheduled' })
             }}
-            className={`px-4 py-2 border transition-colors ${
+            className={`px-4 py-2 border-2 transition-colors ${
               startMode === 'scheduled'
                 ? 'border-amber bg-amber/10 text-amber'
                 : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey'
@@ -342,74 +594,22 @@ function Step3Rewards({
       </div>
 
       <div>
-        <RadioGroup
-          options={[
-            { value: 'endDate', label: 'Fixed end date' },
-            { value: 'targetApr', label: 'Target APR' },
-          ]}
-          value={params.endMode}
-          onChange={(value) => updateParams({ endMode: value as 'endDate' | 'targetApr' })}
-          label="End Condition"
+        <NumericInput
+          value={params.targetApr || ''}
+          onChange={(value) => updateParams({ targetApr: value })}
+          label="Target APR"
+          suffix="%"
+          placeholder="0.00"
         />
-        {errors.endMode && <div className="mt-2 text-sm text-mid-grey">{errors.endMode}</div>}
+        {errors.targetApr && <div className="text-sm text-mid-grey">{errors.targetApr}</div>}
+
+        <div className="mt-4 p-4 border-2 border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
+          APR is fixed. Reward rates are updated dynamically based on TVL to maintain the target APR.
+        </div>
       </div>
 
-      {params.endMode === 'endDate' && (
-        <div className="space-y-4">
-          <DatePicker
-            value={params.endDate}
-            onChange={(value) => updateParams({ endDate: value })}
-            label="End Date"
-            min={
-              params.startMode === 'scheduled' && params.startDate
-                ? params.startDate
-                : new Date().toISOString().split('T')[0]
-            }
-          />
-          {errors.endDate && <div className="text-sm text-mid-grey">{errors.endDate}</div>}
-
-          {emissionRate && (
-            <div className="p-4 border border-mid-grey/30 bg-off-white/5">
-              <div className="text-sm text-mid-grey mb-2">Emission Rate</div>
-              <div className="text-sm text-off-white">
-                {emissionRate.perDay.toFixed(4)} {rewardAsset?.symbol || ''} per day
-              </div>
-              <div className="text-xs text-mid-grey mt-1">
-                {emissionRate.perHour.toFixed(6)} {rewardAsset?.symbol || ''} per hour
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {params.endMode === 'targetApr' && (
-        <div className="space-y-4">
-          <NumericInput
-            value={params.targetApr || ''}
-            onChange={(value) => updateParams({ targetApr: value })}
-            label="Target APR"
-            suffix="%"
-            placeholder="0.00"
-          />
-          {errors.targetApr && <div className="text-sm text-mid-grey">{errors.targetApr}</div>}
-
-          <NumericInput
-            value={params.assumedTvlUsd || ''}
-            onChange={(value) => updateParams({ assumedTvlUsd: value })}
-            label="Assumed TVL"
-            suffix="USD"
-            placeholder="0.00"
-          />
-          {errors.assumedTvlUsd && <div className="text-sm text-mid-grey">{errors.assumedTvlUsd}</div>}
-
-          <div className="p-4 border border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
-            APR varies with total staked. Target APR is calculated using the assumed TVL.
-          </div>
-        </div>
-      )}
-
-      <div className="p-4 border border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
-        Total rewards are fixed. End mode determines emission schedule only.
+      <div className="p-4 border-2 border-mid-grey/30 bg-off-white/5 text-sm text-mid-grey">
+        Total rewards are fixed. Reward rates adjust automatically to maintain the target APR.
       </div>
     </div>
   )
@@ -450,22 +650,11 @@ function Step4Metadata({
           onChange={(e) => updateParams({ poolName: e.target.value })}
           placeholder="Enter pool name"
           maxLength={48}
-          className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
+          className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
         />
         {errors.poolName && <div className="mt-2 text-sm text-mid-grey">{errors.poolName}</div>}
       </div>
 
-      <div>
-        <label className="block text-sm text-mid-grey mb-2">Created By</label>
-        <input
-          type="text"
-          value={params.createdBy || ''}
-          onChange={(e) => updateParams({ createdBy: e.target.value })}
-          placeholder="Optional"
-          maxLength={48}
-          className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
-        />
-      </div>
 
       <div>
         <label className="block text-sm text-mid-grey mb-2">Website URL</label>
@@ -474,7 +663,7 @@ function Step4Metadata({
           value={params.websiteUrl || ''}
           onChange={(e) => updateParams({ websiteUrl: e.target.value })}
           placeholder="https://example.com"
-          className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
+          className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
         />
         {errors.websiteUrl && <div className="mt-2 text-sm text-mid-grey">{errors.websiteUrl}</div>}
       </div>
@@ -487,7 +676,7 @@ function Step4Metadata({
           placeholder="Optional description (max 140 characters)"
           maxLength={140}
           rows={3}
-          className="w-full px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber resize-none"
+          className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber resize-none"
         />
         <div className="mt-1 text-xs text-mid-grey text-right">
           {(params.description || '').length}/140
@@ -505,7 +694,7 @@ function Step4Metadata({
                 key={tag}
                 type="button"
                 onClick={() => handleTagToggle(tag)}
-                className={`px-3 py-1 border text-sm transition-colors ${
+                className={`px-3 py-1 border-2 text-sm transition-colors ${
                   isSelected
                     ? 'border-amber bg-amber/10 text-amber'
                     : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey'
@@ -525,42 +714,81 @@ function Step4Metadata({
 function Step5Review({
   params,
   assets,
+  networkConfig,
 }: {
   params: Partial<WizardParams>
   assets: { stake?: Asset; reward?: Asset }
+  networkConfig: Network
 }) {
+  const { activeAccount, activeWallet } = useWallet()
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return '--'
     return new Date(dateString).toLocaleString()
   }
 
-  const calculateEmissionRate = () => {
-    if (!params.totalRewards || !params.endDate) return null
-    const totalRewards = parseFloat(params.totalRewards)
-    if (isNaN(totalRewards)) return null
-    const endDate = new Date(params.endDate)
-    const startDate = params.startMode === 'scheduled' && params.startDate
-      ? new Date(params.startDate)
-      : new Date()
-    const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    if (durationDays <= 0) return null
-    return totalRewards / durationDays
-  }
+  // Fetch account balances for checking opt-ins and balances
+  const { data: accountBalances } = useQuery({
+    queryKey: ['preflightBalances', activeAccount?.address, networkConfig.id],
+    queryFn: () => fetchAccountBalances(activeAccount?.address || '', networkConfig),
+    enabled: !!activeAccount?.address && !!networkConfig.indexerServer,
+    staleTime: 10 * 1000, // Cache for 10 seconds
+  })
 
-  const emissionRate = calculateEmissionRate()
+  // Check opt-in status for stake asset
+  const stakeAssetOptIn = useMemo(() => {
+    if (!params.stakeAssetId || !accountBalances) return 'unknown'
+    if (params.stakeAssetId === '0') return 'yes' // ALGO doesn't need opt-in
+    const hasAsset = accountBalances.assets.some(a => a.assetId === params.stakeAssetId)
+    return hasAsset ? 'yes' : 'no'
+  }, [params.stakeAssetId, accountBalances])
+
+  // Check opt-in status for reward asset
+  const rewardAssetOptIn = useMemo(() => {
+    if (!params.rewardAssetId || !accountBalances) return 'unknown'
+    if (params.rewardAssetId === '0') return 'yes' // ALGO doesn't need opt-in
+    const hasAsset = accountBalances.assets.some(a => a.assetId === params.rewardAssetId)
+    return hasAsset ? 'yes' : 'no'
+  }, [params.rewardAssetId, accountBalances])
+
+  // Check if user has sufficient balance of reward asset
+  const sufficientBalance = useMemo(() => {
+    if (!params.rewardAssetId || !params.totalRewards || !accountBalances) return 'unknown'
+    
+    const totalRewards = parseFloat(params.totalRewards)
+    if (isNaN(totalRewards)) return 'unknown'
+
+    // ALGO balance check
+    if (params.rewardAssetId === '0') {
+      const algoBalance = parseFloat(accountBalances.algoBalance) / 1_000_000 // Convert from microAlgos
+      return algoBalance >= totalRewards ? 'yes' : 'no'
+    }
+
+    // Asset balance check
+    const rewardAsset = accountBalances.assets.find(a => a.assetId === params.rewardAssetId)
+    if (!rewardAsset) return 'no'
+
+    const rewardAssetBalance = parseFloat(rewardAsset.balance) / (10 ** rewardAsset.decimals)
+    return rewardAssetBalance >= totalRewards ? 'yes' : 'no'
+  }, [params.rewardAssetId, params.totalRewards, accountBalances])
+
+  // Wallet connected check
+  const walletConnected = useMemo(() => {
+    return activeAccount && activeWallet ? 'yes' : 'no'
+  }, [activeAccount, activeWallet])
 
   const preflightItems = [
-    { label: 'Wallet connected', status: 'unknown' as const },
-    { label: 'Opt-in required for stake asset', status: 'unknown' as const },
-    { label: 'Opt-in required for reward asset', status: 'unknown' as const },
-    { label: 'Sufficient balance of reward asset', status: 'unknown' as const },
+    { label: 'Wallet connected', status: walletConnected as 'yes' | 'no' | 'unknown' },
+    { label: 'Opt-in required for stake asset', status: stakeAssetOptIn as 'yes' | 'no' | 'unknown' },
+    { label: 'Opt-in required for reward asset', status: rewardAssetOptIn as 'yes' | 'no' | 'unknown' },
+    { label: 'Sufficient balance of reward asset', status: sufficientBalance as 'yes' | 'no' | 'unknown' },
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h3 className="text-lg font-medium text-off-white mb-4">Pool Configuration</h3>
-        <div className="border border-mid-grey/30">
+        <h3 className="text-lg font-medium text-off-white mb-6">Pool Configuration</h3>
+        <div className="border-2 border-mid-grey/30 rounded-sm overflow-hidden">
           <ReviewRow label="Type" value={params.type === 'single' ? 'Single-asset pool' : 'LP pool'} />
           <ReviewRow
             label="Stake Asset"
@@ -582,37 +810,19 @@ function Step5Review({
                 : 'Now'
             }
           />
-          {params.endMode === 'endDate' && (
-            <>
-              <ReviewRow label="End Mode" value="Fixed end date" />
-              <ReviewRow label="End Date" value={formatDate(params.endDate)} />
-              {emissionRate && (
-                <ReviewRow
-                  label="Emission Rate"
-                  value={`${emissionRate.toFixed(4)} ${assets.reward?.symbol || ''} per day`}
-                />
-              )}
-            </>
-          )}
-          {params.endMode === 'targetApr' && (
-            <>
-              <ReviewRow label="End Mode" value="Target APR" />
-              <ReviewRow label="Target APR" value={params.targetApr ? `${params.targetApr}%` : '--'} />
-              <ReviewRow label="Assumed TVL" value={params.assumedTvlUsd ? `$${params.assumedTvlUsd}` : '--'} />
-              <ReviewRow
-                label="Note"
-                value="APR varies with total staked. Target APR is calculated using the assumed TVL."
-              />
-            </>
-          )}
+          <ReviewRow label="End Mode" value="Target APR" />
+          <ReviewRow label="Target APR" value={params.targetApr ? `${params.targetApr}%` : '--'} />
+          <ReviewRow
+            label="Note"
+            value="APR is fixed. Reward rates are updated dynamically based on TVL to maintain the target APR."
+          />
         </div>
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-off-white mb-4">Metadata</h3>
-        <div className="border border-mid-grey/30">
+        <h3 className="text-lg font-medium text-off-white mb-6">Metadata</h3>
+        <div className="border-2 border-mid-grey/30 rounded-sm overflow-hidden">
           <ReviewRow label="Pool Name" value={params.poolName || '--'} />
-          {params.createdBy && <ReviewRow label="Created By" value={params.createdBy} />}
           {params.websiteUrl && <ReviewRow label="Website" value={params.websiteUrl} />}
           {params.description && <ReviewRow label="Description" value={params.description} />}
           {params.tags && <ReviewRow label="Tags" value={params.tags} />}

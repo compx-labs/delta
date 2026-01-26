@@ -16,7 +16,7 @@ const handleScrollTo = (sectionId: string) => {
 
 export function LandingNav() {
   return (
-    <nav className="sticky top-0 z-50 border-b border-mid-grey/20 bg-off-white">
+    <nav className="sticky top-0 z-50 border-b-2 border-mid-grey/20 bg-off-white">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link to="/" className="flex items-center gap-2 text-xl font-medium text-near-black hover:text-amber transition-colors">

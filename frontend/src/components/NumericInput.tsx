@@ -40,7 +40,7 @@ export function NumericInput({
           placeholder={placeholder}
           min={min}
           max={max}
-          className="flex-1 px-4 py-2 border border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
+          className="flex-1 px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
         />
         {suffix && (
           <span className="text-sm text-mid-grey whitespace-nowrap">{suffix}</span>

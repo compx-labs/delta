@@ -11,7 +11,6 @@ export interface WizardParams {
   endMode?: 'endDate' | 'targetApr'
   endDate?: string
   targetApr?: string
-  assumedTvlUsd?: string
   startMode?: 'now' | 'scheduled'
   startDate?: string
   poolName?: string
@@ -31,7 +30,6 @@ export function readParams(searchParams: URLSearchParams): Partial<WizardParams>
     endMode: (searchParams.get('endMode') as 'endDate' | 'targetApr') || undefined,
     endDate: searchParams.get('endDate') || undefined,
     targetApr: searchParams.get('targetApr') || undefined,
-    assumedTvlUsd: searchParams.get('assumedTvlUsd') || undefined,
     startMode: (searchParams.get('startMode') as 'now' | 'scheduled') || 'now',
     startDate: searchParams.get('startDate') || undefined,
     poolName: searchParams.get('poolName') || undefined,
@@ -96,37 +94,11 @@ export function validateStep(step: string, params: Partial<WizardParams>): Valid
       if (!params.totalRewards || parseFloat(params.totalRewards) <= 0) {
         errors.push({ field: 'totalRewards', message: 'Enter total rewards greater than 0' })
       }
-      if (!params.endMode) {
-        errors.push({ field: 'endMode', message: 'Select an end condition' })
-      } else if (params.endMode === 'endDate') {
-        if (!params.endDate) {
-          errors.push({ field: 'endDate', message: 'Select an end date' })
-        } else {
-          const endDate = new Date(params.endDate)
-          const startDate = params.startMode === 'scheduled' && params.startDate
-            ? new Date(params.startDate)
-            : new Date()
-          const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-          
-          if (durationDays < MIN_DURATION_DAYS) {
-            errors.push({ field: 'endDate', message: `End date must be at least ${MIN_DURATION_DAYS} day after start` })
-          }
-          if (durationDays > MAX_DURATION_DAYS) {
-            errors.push({ field: 'endDate', message: `Duration cannot exceed ${MAX_DURATION_DAYS} days` })
-          }
-          if (endDate <= startDate) {
-            errors.push({ field: 'endDate', message: 'End date must be after start date' })
-          }
-        }
-      } else if (params.endMode === 'targetApr') {
-        if (!params.targetApr || parseFloat(params.targetApr) <= 0) {
-          errors.push({ field: 'targetApr', message: 'Enter a target APR greater than 0' })
-        } else if (parseFloat(params.targetApr) > MAX_APR) {
-          errors.push({ field: 'targetApr', message: `APR cannot exceed ${MAX_APR}%` })
-        }
-        if (!params.assumedTvlUsd || parseFloat(params.assumedTvlUsd) <= 0) {
-          errors.push({ field: 'assumedTvlUsd', message: 'Enter an assumed TVL greater than 0' })
-        }
+      // Always require target APR
+      if (!params.targetApr || parseFloat(params.targetApr) <= 0) {
+        errors.push({ field: 'targetApr', message: 'Enter a target APR greater than 0' })
+      } else if (parseFloat(params.targetApr) > MAX_APR) {
+        errors.push({ field: 'targetApr', message: `APR cannot exceed ${MAX_APR}%` })
       }
       break
 

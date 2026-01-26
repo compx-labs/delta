@@ -27,11 +27,12 @@ export function PoolsTable({ pools, onSelectPool }: PoolsTableProps) {
   }
 
   return (
-    <div className="border border-mid-grey/30 overflow-x-auto">
+    <div className="border-2 border-mid-grey/30 overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-mid-grey/30">
-            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Pool</th>
+          <tr className="border-b-2 border-mid-grey/30">
+            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Pool Name</th>
+            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Stake Token</th>
             <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Type</th>
             <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">APR</th>
             <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">Total Deposited</th>
@@ -44,13 +45,18 @@ export function PoolsTable({ pools, onSelectPool }: PoolsTableProps) {
               <tr
                 key={pool.id}
                 onClick={() => onSelectPool(pool.id)}
-                className="border-b border-mid-grey/20 cursor-pointer transition-colors hover:bg-off-white/5"
+                className="border-b-2 border-mid-grey/20 cursor-pointer transition-colors hover:bg-off-white/5"
               >
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${pool.status === 'active' ? 'bg-amber' : 'bg-mid-grey'}`} />
-                    <span className="font-medium text-off-white">{pool.displayName}</span>
+                    <div className={`w-2 h-2  ${pool.status === 'active' ? 'bg-accent' : 'bg-mid-grey'}`} />
+                    <span className="font-medium text-off-white">{pool.name || pool.displayName}</span>
                   </div>
+                </td>
+                <td className="px-4 py-4 text-mid-grey text-sm">
+                  {pool.depositAsset.symbol || (
+                    <span className="text-mid-grey/50">--</span>
+                  )}
                 </td>
                 <td className="px-4 py-4 text-mid-grey text-sm">
                   {pool.type === 'single' ? 'Single' : 'LP'}

@@ -30,7 +30,7 @@ export function RadioGroup({
           return (
             <label
               key={option.value}
-              className={`flex items-start gap-3 p-4 border cursor-pointer transition-colors ${
+              className={`flex items-start gap-3 p-4 border-2 cursor-pointer transition-colors ${
                 isSelected
                   ? 'border-amber bg-amber/10'
                   : 'border-mid-grey/30 hover:border-mid-grey'

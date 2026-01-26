@@ -77,7 +77,7 @@ export const WalletConnectionModal: React.FC = () => {
             transition={{ duration: 0.2 }}
           >
             {/* Modal container */}
-            <div className="relative bg-near-black border border-mid-grey/30 p-6">
+            <div className="relative bg-near-black border-2 border-mid-grey/30 p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -116,10 +116,10 @@ export const WalletConnectionModal: React.FC = () => {
                     whileTap={{ scale: 0.99 }}
                   >
                     {/* Button content */}
-                    <div className="relative bg-near-black border border-mid-grey/30 p-4 hover:border-amber transition-all">
+                    <div className="relative bg-near-black border-2 border-mid-grey/30 p-4 hover:border-amber transition-all">
                       <div className="flex items-center gap-4">
                         <div className="relative">
-                          <div className="w-10 h-10 flex items-center justify-center border border-mid-grey/30">
+                          <div className="w-10 h-10 flex items-center justify-center border-2 border-mid-grey/30">
                             <img
                               src={wallet.metadata.icon}
                               alt={`${wallet.metadata.name} logo`}
@@ -146,7 +146,7 @@ export const WalletConnectionModal: React.FC = () => {
               <div className="text-center">
                 <button
                   onClick={handleClose}
-                  className="px-6 py-2 border border-mid-grey/30 text-off-white hover:border-mid-grey hover:text-mid-grey transition-colors"
+                  className="px-6 py-2 border-2 border-mid-grey/30 text-off-white hover:border-mid-grey hover:text-mid-grey transition-colors"
                 >
                   Cancel
                 </button>

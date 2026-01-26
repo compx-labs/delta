@@ -36,13 +36,12 @@ export const CreateSection: React.FC = () => {
         <ul className="list-disc list-inside text-mid-grey space-y-2 mb-4">
           <li><strong>Total Rewards:</strong> The total amount of reward tokens to distribute</li>
           <li><strong>Start Time:</strong> Start immediately or schedule for later</li>
-          <li><strong>End Condition:</strong> Choose between fixed end date or target APR</li>
+          <li><strong>Target APR:</strong> The fixed APR that the pool will maintain</li>
         </ul>
 
-        <div className="border border-amber/30 bg-amber/10 p-4 mb-6">
+        <div className="border-2 border-amber/30 bg-amber/10 p-4 mb-6">
           <p className="text-amber text-sm">
-            <strong>Note:</strong> APR varies with total staked. Target APR is calculated using
-            the assumed TVL you provide.
+            <strong>Note:</strong> APR is fixed. Reward rates are updated dynamically based on TVL to maintain the target APR.
           </p>
         </div>
 

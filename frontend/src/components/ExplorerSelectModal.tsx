@@ -58,7 +58,7 @@ const ExplorerSelectModal: React.FC<ExplorerSelectModalProps> = ({
                 </h2>
                 <button
                   onClick={onClose}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-slate-500 cut-corners-sm transition-all duration-150"
+                  className="p-2 bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-slate-500 cut-corners-sm transition-all duration-150"
                 >
                   <X className="w-5 h-5 text-slate-400 hover:text-white" />
                 </button>

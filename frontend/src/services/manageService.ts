@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { ManagePoolListItem, ManagePoolDetail } from '../types/pool'
+import { getAllPools, type Pool } from './poolApiService'
 
 // Placeholder data - replace with real API calls later
 const mockManagePools: ManagePoolListItem[] = [
@@ -153,11 +154,36 @@ const mockManagePoolDetails: Record<string, ManagePoolDetail> = {
 }
 
 export async function getPoolsCreatedBy(address: string): Promise<ManagePoolListItem[]> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300))
-  
-  // Return all pools (in real implementation, filter by creator address)
-  return [...mockManagePools]
+  try {
+    // Fetch pools from API and filter by creator address
+    const allPools = await getAllPools()
+    const userPools = allPools.filter(pool => pool.created_by === address)
+    
+    // Transform API pools to ManagePoolListItem format
+    return userPools.map((pool: Pool): ManagePoolListItem => ({
+      id: pool.id,
+      displayName: pool.name || `Pool ${pool.id.slice(0, 8)}`,
+      type: 'single', // Default type, could be enhanced with additional field
+      status: pool.creation_status === 'completed' ? 'active' : 'inactive',
+      stakers: 0, // Would need to fetch from on-chain data
+      apr: null, // Would need to fetch from on-chain data
+      apy: null, // Would need to fetch from on-chain data
+      rewardsRemaining: [], // Would need to fetch from on-chain data
+      endDate: null, // Would need to fetch from on-chain data
+      createdAt: pool.created_at,
+      stakeAsset: { symbol: pool.stake_token, id: pool.stake_token },
+      rewardAssets: [{ symbol: pool.reward_token, id: pool.reward_token }],
+      creation_status: pool.creation_status,
+      step_create_completed: pool.step_create_completed,
+      step_init_completed: pool.step_init_completed,
+      step_fund_activate_register_completed: pool.step_fund_activate_register_completed,
+      app_id: pool.app_id,
+    }))
+  } catch (error) {
+    console.error('Failed to fetch pools:', error)
+    // Fallback to mock data on error
+    return [...mockManagePools]
+  }
 }
 
 export async function getManagePoolDetail(poolId: string): Promise<ManagePoolDetail | null> {

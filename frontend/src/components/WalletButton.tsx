@@ -35,7 +35,7 @@ const WalletButton: React.FC = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { selectedExplorer } = useExplorer();
-  const { isTestnet } = useNetwork();
+  const { isTestnet, selectedNetwork } = useNetwork();
   
   // Debug: Check if context is available
   useEffect(() => {
@@ -45,8 +45,10 @@ const WalletButton: React.FC = () => {
       displayWalletConnectModal: walletContext?.displayWalletConnectModal,
       activeAccount: !!activeAccount,
       activeWallet: !!activeWallet,
+      isTestnet,
+      selectedNetwork,
     });
-  }, [walletContext, activeAccount, activeWallet]);
+  }, [walletContext, activeAccount, activeWallet, isTestnet, selectedNetwork]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -181,10 +183,10 @@ const WalletButton: React.FC = () => {
       <button
         ref={buttonRef}
         onClick={toggleDropdown}
-        className="h-10 px-3 bg-transparent border border-mid-grey/30 text-sm font-medium text-off-white hover:border-amber hover:text-amber transition-colors flex items-center gap-2 relative z-10"
+        className="h-10 px-3 bg-transparent border-2 border-mid-grey/30 text-sm font-medium text-off-white hover:border-amber hover:text-amber transition-colors flex items-center gap-2 relative z-10"
       >
         {/* Wallet/NFD icon */}
-        <div className="w-5 h-5 flex items-center justify-center border border-mid-grey/30 overflow-hidden">
+        <div className="w-5 h-5 flex items-center justify-center border-2 border-mid-grey/30 overflow-hidden">
           {nfdAvatar ? (
             <img
               src={nfdAvatar}
@@ -239,7 +241,7 @@ const WalletButton: React.FC = () => {
               }}
             >
               {/* Dropdown Panel */}
-              <div className="bg-near-black border border-mid-grey/30 p-4">
+              <div className="bg-near-black border-2 border-mid-grey/30 p-4">
                 {/* Wallet info header with action buttons */}
                 <GovernanceRewardsButtons
                   walletAddress={activeAccount.address}
@@ -249,7 +251,7 @@ const WalletButton: React.FC = () => {
 
                 {/* Address section */}
                 <div className="mb-4">
-                  <div className="p-3 border border-mid-grey/30 flex items-center gap-3">
+                  <div className="p-3 border-2 border-mid-grey/30 flex items-center gap-3">
                     <div className="flex-1">
                       <span className="text-sm font-medium text-off-white">
                         {formatDisplayName(activeAccount.address)}
@@ -262,7 +264,7 @@ const WalletButton: React.FC = () => {
                     </div>
                     <button
                       onClick={copyAddress}
-                      className="p-2 hover:bg-mid-grey/10 border border-mid-grey/30 transition-colors"
+                      className="p-2 hover:bg-mid-grey/10 border-2 border-mid-grey/30 transition-colors"
                     >
                       {copied ? (
                         <Check className="w-4 h-4 text-amber" />
@@ -278,9 +280,9 @@ const WalletButton: React.FC = () => {
                   {/* Network Select button */}
                   <button
                     onClick={handleNetworkSelect}
-                    className="w-full h-12 px-4 bg-near-black border border-mid-grey/30 hover:border-amber hover:text-amber transition-colors flex items-center gap-3 text-left"
+                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:border-amber hover:text-amber transition-colors flex items-center gap-3 text-left"
                   >
-                    <div className="w-6 h-6 flex items-center justify-center border border-mid-grey/30">
+                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30">
                       {isTestnet ? (
                         <FlaskConical className="w-3 h-3 text-off-white" />
                       ) : (
@@ -298,12 +300,12 @@ const WalletButton: React.FC = () => {
                   </button>
 
                   {/* Faucet button - Only show on testnet */}
-                  {isTestnet && (
+                  {isTestnet ? (
                     <button
                       onClick={handleFaucet}
                       className="w-full h-12 px-4 bg-amber text-near-black hover:bg-amber/90 transition-colors flex items-center gap-3 text-left"
                     >
-                      <div className="w-6 h-6 flex items-center justify-center border border-near-black/20">
+                      <div className="w-6 h-6 flex items-center justify-center border-2 border-near-black/20">
                         <Droplets className="w-3 h-3 text-near-black" />
                       </div>
                       <div className="flex-1">
@@ -315,14 +317,14 @@ const WalletButton: React.FC = () => {
                         </p>
                       </div>
                     </button>
-                  )}
+                  ) : null}
 
                   {/* Explorer Select button */}
                   <button
                     onClick={handleExplorerSelect}
-                    className="w-full h-12 px-4 bg-near-black border border-mid-grey/30 hover:border-amber hover:text-amber transition-colors flex items-center gap-3 text-left"
+                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:border-amber hover:text-amber transition-colors flex items-center gap-3 text-left"
                   >
-                    <div className="w-6 h-6 flex items-center justify-center border border-mid-grey/30">
+                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30">
                       <img 
                         src={EXPLORERS[selectedExplorer].logo} 
                         alt={EXPLORERS[selectedExplorer].name}
@@ -345,7 +347,7 @@ const WalletButton: React.FC = () => {
                       href="https://x.com/compxlabs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
                       title="X (Twitter)"
                     >
                       <svg
@@ -364,7 +366,7 @@ const WalletButton: React.FC = () => {
                       href="https://discord.gg/pSG93C6UN8"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
                       title="Discord"
                     >
                       <svg
@@ -383,7 +385,7 @@ const WalletButton: React.FC = () => {
                       href="https://t.me/compxlabs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
                       title="Telegram"
                     >
                       <svg
@@ -402,7 +404,7 @@ const WalletButton: React.FC = () => {
                       href="https://github.com/compx-labs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-10 h-10 border border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
+                      className="flex items-center justify-center w-10 h-10 border-2 border-mid-grey/30 text-mid-grey hover:text-amber hover:border-amber transition-colors"
                       title="GitHub"
                     >
                       <svg
@@ -422,9 +424,9 @@ const WalletButton: React.FC = () => {
                   {/* Disconnect button */}
                   <button
                     onClick={handleDisconnect}
-                    className="w-full h-12 px-4 bg-near-black border border-mid-grey/30 hover:border-mid-grey hover:text-mid-grey transition-colors flex items-center gap-3 text-left"
+                    className="w-full h-12 px-4 bg-near-black border-2 border-mid-grey/30 hover:border-mid-grey hover:text-mid-grey transition-colors flex items-center gap-3 text-left"
                   >
-                    <div className="w-6 h-6 flex items-center justify-center border border-mid-grey/30">
+                    <div className="w-6 h-6 flex items-center justify-center border-2 border-mid-grey/30">
                       <LogOut className="w-3 h-3 text-off-white" />
                     </div>
                     <div className="flex-1">

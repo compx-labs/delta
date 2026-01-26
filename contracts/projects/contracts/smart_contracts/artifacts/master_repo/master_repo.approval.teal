@@ -219,19 +219,6 @@ registerContract:
     ==
     assert // transaction type is pay
     // smart_contracts/master_repo/master_repo.algo.ts:58
-    // assert(op.Txn.sender === this.admin_address.value, "Only admin can register");
-    txn Sender
-    intc_1 // 0
-    // smart_contracts/master_repo/master_repo.algo.ts:25
-    // admin_address = GlobalState<Account>();
-    bytec_0 // "admin_address"
-    // smart_contracts/master_repo/master_repo.algo.ts:58
-    // assert(op.Txn.sender === this.admin_address.value, "Only admin can register");
-    app_global_get_ex
-    assert // check GlobalState exists
-    ==
-    assert // Only admin can register
-    // smart_contracts/master_repo/master_repo.algo.ts:59
     // assert(!this.registered_contracts(app).exists, "Already registered");
     swap
     itob
@@ -240,14 +227,14 @@ registerContract:
     bytec_3 // "rc"
     swap
     concat
-    // smart_contracts/master_repo/master_repo.algo.ts:59
+    // smart_contracts/master_repo/master_repo.algo.ts:58
     // assert(!this.registered_contracts(app).exists, "Already registered");
     dup
     box_len
     bury 1
     !
     assert // Already registered
-    // smart_contracts/master_repo/master_repo.algo.ts:61-65
+    // smart_contracts/master_repo/master_repo.algo.ts:60-64
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -255,10 +242,10 @@ registerContract:
     // });
     dig 1
     gtxns Sender
-    // smart_contracts/master_repo/master_repo.algo.ts:62
+    // smart_contracts/master_repo/master_repo.algo.ts:61
     // sender: op.Txn.sender,
     txn Sender
-    // smart_contracts/master_repo/master_repo.algo.ts:61-65
+    // smart_contracts/master_repo/master_repo.algo.ts:60-64
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -267,10 +254,10 @@ registerContract:
     ==
     dig 2
     gtxns Receiver
-    // smart_contracts/master_repo/master_repo.algo.ts:63
+    // smart_contracts/master_repo/master_repo.algo.ts:62
     // receiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/master_repo/master_repo.algo.ts:61-65
+    // smart_contracts/master_repo/master_repo.algo.ts:60-64
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -280,10 +267,10 @@ registerContract:
     &&
     uncover 2
     gtxns Amount
-    // smart_contracts/master_repo/master_repo.algo.ts:64
+    // smart_contracts/master_repo/master_repo.algo.ts:63
     // amount: REGISTRY_BOX_FEE,
     pushint 22500 // 22500
-    // smart_contracts/master_repo/master_repo.algo.ts:61-65
+    // smart_contracts/master_repo/master_repo.algo.ts:60-64
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -292,7 +279,7 @@ registerContract:
     ==
     &&
     assert // assert target is match for conditions
-    // smart_contracts/master_repo/master_repo.algo.ts:67
+    // smart_contracts/master_repo/master_repo.algo.ts:66
     // this.registered_contracts(app).value = new Uint64(1);
     pushbytes 0x0000000000000001
     box_put
@@ -304,7 +291,7 @@ registerContract:
 
 // smart_contracts/master_repo/master_repo.algo.ts::MasterRepo.unregisterContract[routing]() -> void:
 unregisterContract:
-    // smart_contracts/master_repo/master_repo.algo.ts:70
+    // smart_contracts/master_repo/master_repo.algo.ts:69
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -319,20 +306,20 @@ unregisterContract:
     intc_2 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/master_repo/master_repo.algo.ts:72
+    // smart_contracts/master_repo/master_repo.algo.ts:71
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can unregister");
     txn Sender
     intc_1 // 0
     // smart_contracts/master_repo/master_repo.algo.ts:25
     // admin_address = GlobalState<Account>();
     bytec_0 // "admin_address"
-    // smart_contracts/master_repo/master_repo.algo.ts:72
+    // smart_contracts/master_repo/master_repo.algo.ts:71
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can unregister");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only admin can unregister
-    // smart_contracts/master_repo/master_repo.algo.ts:73
+    // smart_contracts/master_repo/master_repo.algo.ts:72
     // assert(this.registered_contracts(app).exists, "Not registered");
     swap
     itob
@@ -341,17 +328,17 @@ unregisterContract:
     bytec_3 // "rc"
     swap
     concat
-    // smart_contracts/master_repo/master_repo.algo.ts:73
+    // smart_contracts/master_repo/master_repo.algo.ts:72
     // assert(this.registered_contracts(app).exists, "Not registered");
     dup
     box_len
     bury 1
     assert // Not registered
-    // smart_contracts/master_repo/master_repo.algo.ts:75
+    // smart_contracts/master_repo/master_repo.algo.ts:74
     // this.registered_contracts(app).delete();
     box_del
     pop
-    // smart_contracts/master_repo/master_repo.algo.ts:77-84
+    // smart_contracts/master_repo/master_repo.algo.ts:76-83
     // itxn
     //   .payment({
     //     receiver: refundReceiver,
@@ -361,16 +348,16 @@ unregisterContract:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/master_repo/master_repo.algo.ts:81
+    // smart_contracts/master_repo/master_repo.algo.ts:80
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     itxn_field Sender
-    // smart_contracts/master_repo/master_repo.algo.ts:80
+    // smart_contracts/master_repo/master_repo.algo.ts:79
     // amount: REGISTRY_BOX_FEE - 2000,
     pushint 20500 // 20500
     itxn_field Amount
     itxn_field Receiver
-    // smart_contracts/master_repo/master_repo.algo.ts:77-83
+    // smart_contracts/master_repo/master_repo.algo.ts:76-82
     // itxn
     //   .payment({
     //     receiver: refundReceiver,
@@ -380,11 +367,11 @@ unregisterContract:
     //   })
     intc_0 // 1
     itxn_field TypeEnum
-    // smart_contracts/master_repo/master_repo.algo.ts:82
+    // smart_contracts/master_repo/master_repo.algo.ts:81
     // fee: 0,
     intc_1 // 0
     itxn_field Fee
-    // smart_contracts/master_repo/master_repo.algo.ts:77-84
+    // smart_contracts/master_repo/master_repo.algo.ts:76-83
     // itxn
     //   .payment({
     //     receiver: refundReceiver,
@@ -394,7 +381,7 @@ unregisterContract:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/master_repo/master_repo.algo.ts:70
+    // smart_contracts/master_repo/master_repo.algo.ts:69
     // @abimethod({ allowActions: "NoOp" })
     intc_0 // 1
     return
@@ -402,7 +389,7 @@ unregisterContract:
 
 // smart_contracts/master_repo/master_repo.algo.ts::MasterRepo.isRegistered[routing]() -> void:
 isRegistered:
-    // smart_contracts/master_repo/master_repo.algo.ts:87
+    // smart_contracts/master_repo/master_repo.algo.ts:86
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -411,7 +398,7 @@ isRegistered:
     ==
     assert // invalid number of bytes for arc4.uint64
     btoi
-    // smart_contracts/master_repo/master_repo.algo.ts:89
+    // smart_contracts/master_repo/master_repo.algo.ts:88
     // return new Uint64(this.registered_contracts(app).exists ? 1 : 0);
     itob
     // smart_contracts/master_repo/master_repo.algo.ts:23
@@ -419,12 +406,12 @@ isRegistered:
     bytec_3 // "rc"
     swap
     concat
-    // smart_contracts/master_repo/master_repo.algo.ts:89
+    // smart_contracts/master_repo/master_repo.algo.ts:88
     // return new Uint64(this.registered_contracts(app).exists ? 1 : 0);
     box_len
     bury 1
     itob
-    // smart_contracts/master_repo/master_repo.algo.ts:87
+    // smart_contracts/master_repo/master_repo.algo.ts:86
     // @abimethod({ allowActions: "NoOp" })
     bytec 4 // 0x151f7c75
     swap
@@ -436,17 +423,17 @@ isRegistered:
 
 // smart_contracts/master_repo/master_repo.algo.ts::MasterRepo.getSuperAdminAddress[routing]() -> void:
 getSuperAdminAddress:
-    // smart_contracts/master_repo/master_repo.algo.ts:94
+    // smart_contracts/master_repo/master_repo.algo.ts:93
     // return new Address(this.super_admin_address.value);
     intc_1 // 0
     // smart_contracts/master_repo/master_repo.algo.ts:26
     // super_admin_address = GlobalState<Account>();
     bytec_1 // "super_admin_address"
-    // smart_contracts/master_repo/master_repo.algo.ts:94
+    // smart_contracts/master_repo/master_repo.algo.ts:93
     // return new Address(this.super_admin_address.value);
     app_global_get_ex
     assert // check GlobalState exists
-    // smart_contracts/master_repo/master_repo.algo.ts:92
+    // smart_contracts/master_repo/master_repo.algo.ts:91
     // @abimethod({ allowActions: "NoOp" })
     bytec 4 // 0x151f7c75
     swap
@@ -458,17 +445,17 @@ getSuperAdminAddress:
 
 // smart_contracts/master_repo/master_repo.algo.ts::MasterRepo.getPlatformFeeBps[routing]() -> void:
 getPlatformFeeBps:
-    // smart_contracts/master_repo/master_repo.algo.ts:99
+    // smart_contracts/master_repo/master_repo.algo.ts:98
     // return this.platform_fee_bps.value;
     intc_1 // 0
     // smart_contracts/master_repo/master_repo.algo.ts:27
     // platform_fee_bps = GlobalState<Uint64>();
     bytec_2 // "platform_fee_bps"
-    // smart_contracts/master_repo/master_repo.algo.ts:99
+    // smart_contracts/master_repo/master_repo.algo.ts:98
     // return this.platform_fee_bps.value;
     app_global_get_ex
     assert // check GlobalState exists
-    // smart_contracts/master_repo/master_repo.algo.ts:97
+    // smart_contracts/master_repo/master_repo.algo.ts:96
     // @abimethod({ allowActions: "NoOp" })
     bytec 4 // 0x151f7c75
     swap

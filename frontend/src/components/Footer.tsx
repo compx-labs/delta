@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="border-t border-mid-grey/20 bg-near-black text-off-white py-12 mt-16">
+    <footer className="border-t-2 border-mid-grey/20 bg-near-black text-off-white py-12 mt-16">
       <div className="container mx-auto px-4">
         {/* Three Column Layout */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
@@ -26,7 +26,7 @@ export function Footer() {
               </a>
               <a
                 href="https://compx.io"
-                className="px-4 py-2 bg-transparent border border-amber text-amber font-medium hover:bg-amber/10 transition-colors text-sm text-center"
+                className="px-4 py-2 bg-transparent border-2 border-amber text-amber font-medium hover:bg-amber/10 transition-colors text-sm text-center"
               >
                 + POWERED BY COMPX
               </a>
@@ -100,7 +100,7 @@ export function Footer() {
                 href="https://twitter.com/compxlabs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
+                className="w-10 h-10 border-2 border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
                 aria-label="Twitter"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -111,7 +111,7 @@ export function Footer() {
                 href="https://youtube.com/@compxlabs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
+                className="w-10 h-10 border-2 border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
                 aria-label="YouTube"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@ export function Footer() {
                 href="https://t.me/compxlabs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
+                className="w-10 h-10 border-2 border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
                 aria-label="Telegram"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@ export function Footer() {
                 href="https://discord.gg/compxlabs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
+                className="w-10 h-10 border-2 border-mid-grey/30 bg-off-white/5 flex items-center justify-center text-off-white hover:border-amber hover:text-amber transition-colors"
                 aria-label="Discord"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@ export function Footer() {
         </div>
 
         {/* Bottom Section: Copyright */}
-        <div className="border-t border-mid-grey/20 pt-6">
+        <div className="border-t-2 border-mid-grey/20 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-mid-grey">
             <div>© {new Date().getFullYear()} Delta by CompX Labs - All rights reserved.</div>
             <div>Built on Algorand</div>
