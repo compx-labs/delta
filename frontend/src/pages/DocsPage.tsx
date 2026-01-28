@@ -99,11 +99,9 @@ export function DocsPage() {
           
 
           <h1 className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-medium mb-3 sm:mb-4 md:mb-6 text-off-white tracking-tight">
-            DELTA <span className="text-amber">DOCUMENTATION</span>
+            Delta <span className="text-off-white">Documentation</span>
           </h1>
-          <p className="text-xs sm:text-base md:text-xl text-mid-grey max-w-4xl leading-relaxed mb-5 sm:mb-6 md:mb-8">
-            Complete guide to Delta Staking Protocol • Learn to navigate the system • Master DeFi staking
-          </p>
+
         </motion.div>
 
         {/* Main Documentation Layout */}
