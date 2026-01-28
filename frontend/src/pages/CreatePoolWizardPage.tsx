@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useWallet } from '@txnlab/use-wallet-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { TransactionSigner } from 'algosdk'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
@@ -17,6 +17,7 @@ import { readParams, writeParams, validateStep, type WizardParams } from '../uti
 import { getAssets } from '../services/assetService'
 import { createPool as createPoolMetadata, updatePool } from '../services/poolApiService'
 import { useNetwork, type Network } from '../context/networkContext'
+import { usePools } from '../context/poolsContext'
 import { fetchAccountBalances } from '../services/balanceService'
 import { 
   createPool as createPoolContract, 
@@ -35,6 +36,8 @@ export function CreatePoolWizardPage() {
   const navigate = useNavigate()
   const { activeAccount, activeWallet, transactionSigner } = useWallet()
   const { networkConfig } = useNetwork()
+  const { refetchMasterRepo, refetchPools } = usePools()
+  const queryClient = useQueryClient()
   const { openMultiStepToast, updateStep, completeMultiStep, failMultiStep } = useToast()
   const [params, setParams] = useState<Partial<WizardParams>>(() => readParams(searchParams))
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -327,6 +330,15 @@ export function CreatePoolWizardPage() {
           step_fund_activate_register_completed: true,
           creation_status: 'completed',
         })
+
+        // Refetch pools data to include the newly created pool
+        console.log('Refetching pools data...')
+        await Promise.all([
+          refetchMasterRepo(),
+          refetchPools(),
+          queryClient.invalidateQueries({ queryKey: ['poolMetadata'] }),
+        ])
+        console.log('Pools data refreshed')
       }
 
       // Complete multi-step toast
