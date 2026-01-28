@@ -1,11 +1,14 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { LandingNav } from '../components/LandingNav'
 import { Footer } from '../components/Footer'
 import { Section } from '../components/Section'
 import { Panel } from '../components/Panel'
 import { StatItem } from '../components/StatItem'
+import { AnimButton } from '../components/AnimButton'
 
 export function LandingPage() {
+  const navigate = useNavigate()
+  
   // Placeholder stats - replace with real data when available
   const stats = {
     activePools: null as number | null,
@@ -32,27 +35,13 @@ export function LandingPage() {
               Delta is the canonical place to create and participate in staking and farming programs on Algorand.
               Permissionless, predictable, and designed to run quietly in the background of the ecosystem.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <Link
-                to="/pools"
-                className="inline-block px-6 py-3 bg-amber text-off-white font-medium hover:bg-amber/90 transition-colors text-center"
-              >
-                View pools
-              </Link>
-              <Link
-                to="/create"
-                className="inline-block px-6 py-3 border-2 border-mid-grey text-off-white font-medium hover:border-slate-grey hover:text-mid-grey transition-colors text-center"
-              >
-                Create a pool
-              </Link>
-            </div>
-            <div>
-              <Link
-                to="/docs"
-                className="text-sm text-slate-grey hover:text-mid-grey transition-colors"
-              >
-                Documentation
-              </Link>
+            <div className="mb-6">
+              <AnimButton
+                text="Launch app"
+                onClick={() => navigate('/pools')}
+                variant="accent"
+                className="px-8  text-lg border-accent text-accent hover:border-accent/80 hover:text-accent/80"
+              />
             </div>
           </div>
         </div>

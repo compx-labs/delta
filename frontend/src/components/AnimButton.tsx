@@ -11,10 +11,14 @@ interface AnimButtonProps {
 
 export function AnimButton({ text, onClick, disabled = false, variant = 'default', className = '' }: AnimButtonProps) {
   const baseClasses = variant === 'accent'
-    ? 'border-off-white bg-off-white text-near-black hover:bg-off-white/90'
+    ? 'border-accent bg-transparent text-accent hover:border-accent/80 hover:text-accent/80'
     : 'bg-transparent border-2 border-off-white text-off-white'
   
   const disabledClasses = 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'
+  
+  // Check if accent color is being used via variant or className override
+  const usesAccent = variant === 'accent' || className.includes('text-accent') || className.includes('border-accent')
+  const iconColorClass = usesAccent ? 'text-accent' : 'text-off-white'
   
   return (
     <motion.button
@@ -52,7 +56,7 @@ export function AnimButton({ text, onClick, disabled = false, variant = 'default
             ease: 'easeInOut',
           }}
         >
-          <IoMdPlay className="w-4 h-4 text-off-white ml-2" />
+          <IoMdPlay className={`w-4 h-4 ${iconColorClass} ml-2`} />
         </motion.div>
       )}
     </motion.button>
