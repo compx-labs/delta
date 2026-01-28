@@ -6,6 +6,7 @@ import { X, Droplets } from "lucide-react";
 import { useToast } from "../context/toastContext";
 import { getTestTokens } from "../contracts/faucet/user";
 import { useWallet } from "@txnlab/use-wallet-react";
+import { Button } from "./Button";
 
 interface Token {
   id: string;
@@ -130,7 +131,7 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
       default:
         return (
           <>
-            <Droplets className="w-4 h-4 group-hover:text-near-black" />
+            <Droplets className="w-4 h-4" />
             <span>Request {token.symbol}</span>
           </>
         );
@@ -187,12 +188,13 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={onClose}
-                    className="group p-2 hover:bg-off-white hover:text-near-black transition-colors border-2 border-mid-grey/30"
+                    variant="icon"
+                    className="p-2"
                   >
-                    <X className="w-5 h-5 text-mid-grey group-hover:text-near-black transition-colors" />
-                  </button>
+                    <X className="w-5 h-5 text-mid-grey" />
+                  </Button>
                 </div>
               </div>
 
@@ -251,17 +253,13 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                         </div>
 
                         {/* Request button */}
-                        <button
+                        <Button
                           onClick={() => handleTokenRequest(token)}
                           disabled={requestingTokens.has(token.id)}
-                          className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 transition-all duration-150 group ${
-                            requestingTokens.has(token.id)
-                              ? "bg-near-black border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50"
-                              : "bg-near-black border-mid-grey/30 text-off-white hover:bg-off-white hover:text-near-black hover:border-mid-grey/30"
-                          }`}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3"
                         >
                           {getButtonContent(token)}
-                        </button>
+                        </Button>
                       </div>
                     </motion.div>
                   ))}
@@ -274,12 +272,12 @@ const FaucetModal: React.FC<FaucetModalProps> = ({
                   <p className="text-xs text-mid-grey">
                     Resources are for testnet only and have no real value
                   </p>
-                  <button
+                  <Button
                     onClick={onClose}
-                    className="px-4 py-2 bg-near-black border-2 border-mid-grey/30 text-off-white hover:bg-off-white hover:text-near-black transition-colors text-sm group"
+                    className="px-4 py-2 text-sm w-auto"
                   >
                     Close
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Globe, FlaskConical } from "lucide-react";
 import { useNetwork } from "../context/networkContext";
 import type { NetworkType } from "../context/networkContext";
+import { Button } from "./Button";
 
 interface NetworkSelectModalProps {
   isOpen: boolean;
@@ -74,17 +75,18 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
                 <h2 className="text-xl font-medium text-off-white uppercase tracking-wide">
                   SELECT NETWORK
                 </h2>
-                <button
+                <Button
                   onClick={onClose}
-                  className="p-2 hover:bg-off-white hover:text-near-black border-2 border-mid-grey/30 transition-colors group"
+                  variant="icon"
+                  className="p-2"
                 >
-                  <X className="w-5 h-5 text-mid-grey group-hover:text-near-black" />
-                </button>
+                  <X className="w-5 h-5 text-mid-grey" />
+                </Button>
               </div>
 
-              {/* Description */}
+              {/* Warning Message */}
               <div className="bg-near-black border-2 border-mid-grey/30 p-4 mb-6">
-                <p className="text-white text-sm">
+                <p className="text-off-white text-sm leading-relaxed">
                   ⚠️ Switching networks will reload the application and disconnect your wallet.
                 </p>
               </div>
@@ -96,37 +98,37 @@ const NetworkSelectModal: React.FC<NetworkSelectModalProps> = ({
                   const Icon = network.icon;
                   
                   return (
-                    <button
+                    <Button
                       key={network.id}
                       onClick={() => handleSelectNetwork(network.id)}
-                      className={`w-full p-4 border-2 transition-all duration-150 flex items-center gap-4 group ${
+                      className={`w-full h-auto py-4 px-7 flex items-center gap-5 text-left ${
                         isSelected
-                          ? "bg-near-black border-amber hover:bg-off-white hover:text-near-black hover:border-mid-grey/30"
-                          : "bg-near-black border-mid-grey/30 hover:bg-off-white hover:text-near-black hover:border-mid-grey/30"
+                          ? "bg-near-black border-amber"
+                          : "bg-near-black"
                       }`}
                     >
                       {/* Network Icon */}
-                      <div className="w-12 h-12 flex items-center justify-center border-2 border-mid-grey/30 group-hover:border-mid-grey/30 bg-near-black">
-                        <Icon className="w-6 h-6 text-off-white hover:text-near-black" />
+                      <div className="w-12 h-12 flex items-center justify-center border-2 border-mid-grey/30 bg-near-black flex-shrink-0">
+                        <Icon className="w-6 h-6 text-off-white" />
                       </div>
 
                       {/* Network Info */}
-                      <div className="flex-1 text-left">
-                        <h3 className="font-medium text-off-white group-hover:text-near-black uppercase tracking-wide">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-off-white uppercase tracking-wide text-sm">
                           {network.name.toUpperCase()}
                         </h3>
-                        <p className="text-xs text-mid-grey group-hover:text-near-black/70 mt-1">
+                        <p className="text-xs text-mid-grey mt-1 leading-relaxed">
                           {network.description}
                         </p>
                       </div>
 
                       {/* Selected Indicator */}
                       {isSelected && (
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-accent group-hover:bg-near-black group-hover:border-2 group-hover:border-mid-grey/30">
-                          <Check className="w-4 h-4 text-near-black group-hover:text-off-white" />
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-amber flex-shrink-0">
+                          <Check className="w-4 h-4 text-near-black" />
                         </div>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

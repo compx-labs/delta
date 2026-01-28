@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { galaxyCardTypes } from "./galaxy-card-data";
 import { getUserFluxTier } from "../contracts/flux/state";
 import axios from "axios";
+import { Button } from "./Button";
 
 interface GovernanceRewardsButtonsProps {
   walletAddress?: string;
@@ -103,7 +104,7 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
       <div className="flex-1 grid grid-cols-2 gap-2">
         {/* Governance button */}
         <div className="relative group">
-          <button
+          <Button
             onClick={() => {
               window.open(
                 "https://app.compx.io/governance",
@@ -111,7 +112,7 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                 "noopener,noreferrer"
               );
             }}
-            className="w-full h-14 px-2 py-2 bg-transparent border-2 border-mid-grey/30 hover:border-amber transition-all duration-150 flex flex-col items-center justify-center gap-1"
+            className="w-full h-16 px-3 py-2 bg-transparent flex flex-col items-center justify-center gap-1.5"
           >
             {loadingFluxTier ? (
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-amber border-t-transparent"></div>
@@ -121,18 +122,18 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                   <img
                     src="/FLUX-LOGO.png"
                     alt="FLUX"
-                    className="w-8 h-8 object-contain rounded-full"
+                    className="w-8 h-8 object-contain rounded-full flex-shrink-0"
                   />
-                  <span className="text-base font-mono font-bold text-off-white uppercase tracking-wide">
+                  <span className="text-base font-mono font-bold text-off-white uppercase tracking-wide whitespace-nowrap">
                     T-{fluxTier}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide">
+                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide whitespace-nowrap">
                   GOVERNANCE
                 </span>
               </>
             )}
-          </button>
+          </Button>
           {/* Tooltip */}
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border-2 border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
             Your current FLUX tier
@@ -142,7 +143,7 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
 
         {/* COMPX Rewards button */}
         <div className="relative group">
-          <button
+          <Button
             onClick={() => {
               window.open(
                 "https://app.compx.io/compx-rewards",
@@ -150,36 +151,36 @@ const GovernanceRewardsButtons: React.FC<GovernanceRewardsButtonsProps> = ({
                 "noopener,noreferrer"
               );
             }}
-            className={`w-full h-14 bg-transparent border-2 border-mid-grey/30 hover:border-amber transition-all duration-150 flex flex-col items-center justify-center gap-1 relative overflow-hidden ${
-              galaxyCardImageUrl ? "py-2" : "px-2 py-2"
+            className={`w-full h-16 bg-transparent flex flex-col items-center justify-center gap-1.5 relative overflow-hidden ${
+              galaxyCardImageUrl ? "px-3 py-2" : "px-3 py-2"
             }`}
           >
             {loadingGalaxyCard ? (
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-amber border-t-transparent"></div>
             ) : galaxyCardImageUrl ? (
               <>
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center min-h-0">
                   <img
                     src={galaxyCardImageUrl}
                     alt="Galaxy Card"
-                    className="h-10 w-auto object-contain"
+                    className="h-10 w-auto object-contain max-w-full"
                   />
                 </div>
-                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide">
+                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide whitespace-nowrap">
                   REWARDS
                 </span>
               </>
             ) : (
               <>
-                <span className="text-xs font-mono font-bold text-off-white uppercase tracking-wide text-center">
+                <span className="text-xs font-mono font-bold text-off-white uppercase tracking-wide text-center whitespace-nowrap px-1">
                   Earn CompX Rewards
                 </span>
-                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide">
+                <span className="text-[10px] font-mono font-semibold text-mid-grey uppercase tracking-wide whitespace-nowrap">
                   REWARDS
                 </span>
               </>
             )}
-          </button>
+          </Button>
           {/* Tooltip */}
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-near-black border-2 border-amber text-off-white text-xs font-mono whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
             Your current CompX Rewards level

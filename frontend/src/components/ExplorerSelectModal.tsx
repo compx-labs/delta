@@ -5,6 +5,7 @@ import { X, Check } from "lucide-react";
 import { useExplorer, EXPLORERS } from "../context/explorerContext";
 import type { ExplorerType } from "../context/explorerContext";
 import { useNetwork } from "../context/networkContext";
+import { Button } from "./Button";
 
 interface ExplorerSelectModalProps {
   isOpen: boolean;
@@ -48,25 +49,23 @@ const ExplorerSelectModal: React.FC<ExplorerSelectModalProps> = ({
             className="relative w-full max-w-lg mx-4"
           >
             {/* Modal Panel */}
-            <div className="bg-noise-dark border-2 border-slate-600 cut-corners-lg p-6 shadow-industrial">
-              {/* Edge lighting */}
-              <div className="absolute inset-0 cut-corners-lg shadow-edge-glow pointer-events-none"></div>
-
+            <div className="bg-near-black border-2 border-mid-grey/30 p-6">
               {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-mono text-xl font-bold text-white uppercase tracking-wide">
-                  Select Explorer
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-medium text-off-white uppercase tracking-wide">
+                  SELECT EXPLORER
                 </h2>
-                <button
+                <Button
                   onClick={onClose}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-slate-500 cut-corners-sm transition-all duration-150"
+                  variant="icon"
+                  className="p-2"
                 >
-                  <X className="w-5 h-5 text-slate-400 hover:text-white" />
-                </button>
+                  <X className="w-5 h-5 text-mid-grey" />
+                </Button>
               </div>
 
               {/* Description */}
-              <p className="text-slate-300 text-sm font-mono mb-6">
+              <p className="text-mid-grey text-sm mb-8 leading-relaxed px-1">
                 Choose your preferred blockchain explorer. Links throughout the app will use your selected explorer.
               </p>
 
@@ -75,18 +74,18 @@ const ExplorerSelectModal: React.FC<ExplorerSelectModalProps> = ({
                 {Object.values(EXPLORERS).map((explorer) => {
                   const isSelected = selectedExplorer === explorer.id;
                   return (
-                    <button
+                    <Button
                       key={explorer.id}
                       onClick={() => handleSelectExplorer(explorer.id)}
-                      className={`w-full p-4 border-2 cut-corners-sm transition-all duration-150 flex items-center gap-4 ${
+                      className={`w-full h-auto py-4 px-7 flex items-center gap-5 text-left ${
                         isSelected
-                          ? "bg-cyan-600/20 border-cyan-500 hover:bg-cyan-600/30"
-                          : "bg-slate-800 border-slate-600 hover:bg-slate-700 hover:border-slate-500"
+                          ? "bg-near-black border-amber"
+                          : "bg-near-black"
                       }`}
                     >
                       {/* Explorer Logo */}
                       <div
-                        className="w-12 h-12 flex items-center justify-center p-2"
+                        className="w-12 h-12 flex items-center justify-center p-3 flex-shrink-0"
                         style={{ backgroundColor: explorer.bgColor }}
                       >
                         <img
@@ -97,22 +96,22 @@ const ExplorerSelectModal: React.FC<ExplorerSelectModalProps> = ({
                       </div>
 
                       {/* Explorer Info */}
-                      <div className="flex-1 text-left">
-                        <h3 className="font-mono font-bold text-white uppercase tracking-wide">
+                      <div className="flex-1 min-w-0 py-1.5">
+                        <h3 className="font-medium text-off-white uppercase tracking-wide text-sm mb-2">
                           {explorer.name}
                         </h3>
-                        <p className="text-xs text-slate-400 font-mono">
+                        <p className="text-xs text-mid-grey leading-relaxed">
                           {(isTestnet ? explorer.testnetUrl : explorer.mainnetUrl).replace('https://', '')}
                         </p>
                       </div>
 
                       {/* Selected Indicator */}
                       {isSelected && (
-                        <div className="w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
+                        <div className="w-6 h-6 bg-amber rounded-full flex items-center justify-center flex-shrink-0">
+                          <Check className="w-4 h-4 text-near-black" />
                         </div>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
