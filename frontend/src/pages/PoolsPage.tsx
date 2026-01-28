@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { PoolsTable } from '../components/PoolsTable'
@@ -200,7 +201,12 @@ export function PoolsPage() {
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <motion.div
+          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           <div>
             <h1 className="text-3xl font-medium text-off-white mb-2">Pools</h1>
             <p className="text-mid-grey">Permissionless reward distribution</p>
@@ -209,10 +215,15 @@ export function PoolsPage() {
             text="Create pool"
             onClick={() => navigate('/create')}
           />
-        </div>
+        </motion.div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <motion.div
+          className="flex flex-col md:flex-row gap-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
           <Dropdown
             label="Type"
             options={[
@@ -243,33 +254,56 @@ export function PoolsPage() {
               className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-accent/50"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Error states */}
         {(masterRepoError || poolsError) && (
-          <div className="py-8 px-4 bg-red-500/10 border-2 border-red-500/30 rounded text-red-400 mb-6">
+          <motion.div
+            className="py-8 px-4 bg-red-500/10 border-2 border-red-500/30 rounded text-red-400 mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             <p className="font-medium mb-1">Error loading pools</p>
             <p className="text-sm text-red-300">
               {masterRepoError?.message || poolsError?.message || 'Unknown error occurred'}
             </p>
-          </div>
+          </motion.div>
         )}
 
         {/* Pools Table */}
         {loading ? (
-          <div className="py-16 text-center text-mid-grey">Loading pools...</div>
+          <motion.div
+            className="py-16 text-center text-mid-grey"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            Loading pools...
+          </motion.div>
         ) : (
-          <PoolsTable
-            pools={filteredPools}
-            onSelectPool={handleSelectPool}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <PoolsTable
+              pools={filteredPools}
+              onSelectPool={handleSelectPool}
+            />
+          </motion.div>
         )}
 
         {/* Empty state */}
         {filteredPools.length === 0 && !loading && !masterRepoError && !poolsError && (
-          <div className="py-16 text-center text-mid-grey">
+          <motion.div
+            className="py-16 text-center text-mid-grey"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             No pools available. Pools will appear here once incentive programs are created.
-          </div>
+          </motion.div>
         )}
       </div>
 

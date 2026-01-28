@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useWallet } from '@txnlab/use-wallet-react'
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { ManagePoolsTable } from '../components/ManagePoolsTable'
@@ -142,21 +143,34 @@ export function ManagePage() {
 
         <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8">
           {/* Back Link */}
-          <button
+          <motion.button
             onClick={handleBackToManage}
             className="text-mid-grey hover:text-off-white transition-colors mb-6 inline-block"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
             ← Back to manage
-          </button>
+          </motion.button>
 
           {/* Header */}
-          <div className="mb-8">
+          <motion.div
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
             <h1 className="text-3xl font-medium text-off-white mb-2">Manage pool</h1>
             <p className="text-mid-grey">{poolDetail.displayName}</p>
-          </div>
+          </motion.div>
 
           {/* Summary Panel */}
-          <div className="border-2 border-mid-grey/30 p-6 mb-8 space-y-4">
+          <motion.div
+            className="border-2 border-mid-grey/30 p-6 mb-8 space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <CopyField
                 label="Pool ID"
@@ -219,12 +233,17 @@ export function ManagePage() {
                 variant="dark"
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Placeholder text */}
-          <div className="text-mid-grey">
+          <motion.div
+            className="text-mid-grey"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             Pool management controls will be implemented next.
-          </div>
+          </motion.div>
         </div>
 
         <Footer />
@@ -239,17 +258,27 @@ export function ManagePage() {
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <motion.div
+          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           <div>
             <h1 className="text-3xl font-medium text-off-white mb-2">Manage</h1>
             <p className="text-mid-grey">Pools created by you</p>
           </div>
           
-        </div>
+        </motion.div>
 
         {/* Not Connected State */}
         {!activeAccount && (
-          <div className="py-16 text-center">
+          <motion.div
+            className="py-16 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             <h2 className="text-2xl font-medium text-off-white mb-2">Connect wallet</h2>
             <p className="text-mid-grey mb-6">Connect a wallet to view pools you created.</p>
             <button
@@ -258,22 +287,32 @@ export function ManagePage() {
             >
               Connect
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Connected but no pools */}
         {activeAccount && !loading && pools.length === 0 && (
-          <div className="py-16 text-center">
+          <motion.div
+            className="py-16 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             <h2 className="text-2xl font-medium text-off-white mb-2">No pools found</h2>
             <p className="text-mid-grey">Pools you create will appear here.</p>
-          </div>
+          </motion.div>
         )}
 
         {/* Filters and Table */}
         {activeAccount && pools.length > 0 && (
           <>
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <motion.div
+              className="flex flex-col md:flex-row gap-4 mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
               <Dropdown
                 label="Status"
                 options={[
@@ -304,16 +343,29 @@ export function ManagePage() {
                   className="w-full px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber"
                 />
               </div>
-            </div>
+            </motion.div>
 
             {/* Pools Table */}
             {loading ? (
-              <div className="py-16 text-center text-mid-grey">Loading...</div>
+              <motion.div
+                className="py-16 text-center text-mid-grey"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                Loading...
+              </motion.div>
             ) : (
-              <ManagePoolsTable
-                pools={pools}
-                filters={filters}
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <ManagePoolsTable
+                  pools={pools}
+                  filters={filters}
+                />
+              </motion.div>
             )}
           </>
         )}

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { LandingNav } from '../components/LandingNav'
 import { Footer } from '../components/Footer'
 import { Section } from '../components/Section'
@@ -26,7 +27,12 @@ export function LandingPage() {
       {/* Hero Section */}
       <section className="bg-near-black text-off-white py-24 md:py-32">
         <div className="container mx-auto px-4">
-          <div className="max-w-2xl">
+          <motion.div
+            className="max-w-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <h1 className="text-5xl md:text-6xl font-medium mb-6">Delta</h1>
             <h2 className="text-2xl md:text-3xl text-mid-grey mb-8">
               The neutral incentives network.
@@ -43,13 +49,18 @@ export function LandingPage() {
                 className="px-8  text-lg border-accent text-accent hover:border-accent/80 hover:text-accent/80"
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Stats Strip */}
       {(stats.activePools !== null || stats.totalValueStaked !== null || stats.rewardsDistributed !== null || stats.averageAPR !== null) && (
-        <section className="border-b-2 border-mid-grey/20 py-8">
+        <motion.section
+          className="border-b-2 border-mid-grey/20 py-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <StatItem label="Active pools" value={stats.activePools ?? '--'} />
@@ -64,11 +75,11 @@ export function LandingPage() {
               </span>
             </div>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* What Delta Does */}
-      <Section title="What Delta does" id="what-delta-does">
+      <Section title="What Delta does" id="what-delta-does" animationDelay={0.2}>
         <p className="text-slate-grey mb-12 max-w-3xl leading-relaxed">
           Delta provides shared infrastructure for distributing rewards across many participants, pools, and assets.
         </p>
@@ -86,7 +97,7 @@ export function LandingPage() {
       </Section>
 
       {/* What Delta Is Not */}
-      <Section title="What Delta is not" className="bg-near-black text-off-white">
+      <Section title="What Delta is not" className="bg-near-black text-off-white" animationDelay={0.3}>
         <div className="max-w-2xl">
           <ul className="space-y-3 text-mid-grey mb-6">
             <li>• A marketing platform</li>
@@ -101,7 +112,7 @@ export function LandingPage() {
       </Section>
 
       {/* Designed for Longevity */}
-      <Section title="Designed for longevity">
+      <Section title="Designed for longevity" animationDelay={0.4}>
         <div className="max-w-2xl">
           <p className="text-slate-grey mb-6 leading-relaxed">
             Delta is built for programs that run for months, not days.
@@ -116,7 +127,7 @@ export function LandingPage() {
       </Section>
 
       {/* Permissionless by Default */}
-      <Section title="Permissionless by default" className="bg-near-black text-off-white">
+      <Section title="Permissionless by default" className="bg-near-black text-off-white" animationDelay={0.5}>
         <div className="max-w-2xl">
           <ul className="space-y-3 text-mid-grey mb-6">
             <li>• Open to any ASA</li>
@@ -131,7 +142,7 @@ export function LandingPage() {
       </Section>
 
       {/* Economic Alignment */}
-      <Section title="Economic alignment" id="economic-alignment">
+      <Section title="Economic alignment" id="economic-alignment" animationDelay={0.6}>
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
           <Panel title="xUSD">
             xUSD is the primary unit of account for incentives. It reduces reward volatility and improves comparability between pools.
@@ -143,7 +154,7 @@ export function LandingPage() {
       </Section>
 
       {/* How Delta Fits In */}
-      <Section title="How Delta fits in" id="how-delta-fits-in">
+      <Section title="How Delta fits in" id="how-delta-fits-in" animationDelay={0.7}>
         <div className="max-w-2xl">
           <p className="text-slate-grey mb-6 leading-relaxed">
             Delta is part of a layered financial system. It works alongside:
@@ -182,7 +193,7 @@ export function LandingPage() {
       </Section>
 
       {/* Interface Philosophy */}
-      <Section title="Interface philosophy" className="bg-near-black text-off-white">
+      <Section title="Interface philosophy" className="bg-near-black text-off-white" animationDelay={0.8}>
         <div className="grid md:grid-cols-2 gap-12 max-w-3xl">
           <div>
             <h3 className="text-lg font-medium text-off-white mb-4">You should see</h3>

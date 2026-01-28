@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWallet } from '@txnlab/use-wallet-react'
+import { motion } from 'framer-motion'
 import axios from 'axios'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
@@ -870,7 +871,12 @@ export function PoolDetailPage() {
       <div className="min-h-screen bg-near-black text-off-white">
         <AppNav />
         <div className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl">
+          <motion.div
+            className="max-w-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <Link
               to="/pools"
               className="text-mid-grey hover:text-off-white transition-colors mb-6 inline-block"
@@ -879,7 +885,7 @@ export function PoolDetailPage() {
             </Link>
             <h1 className="text-3xl font-medium text-off-white mb-4">Pool Details</h1>
             <p className="text-mid-grey">No pool selected.</p>
-          </div>
+          </motion.div>
         </div>
         <Footer />
       </div>
@@ -891,7 +897,12 @@ export function PoolDetailPage() {
       <div className="min-h-screen bg-near-black text-off-white">
         <AppNav />
         <div className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl">
+          <motion.div
+            className="max-w-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <Link
               to="/pools"
               className="text-mid-grey hover:text-off-white transition-colors mb-6 inline-block"
@@ -900,7 +911,7 @@ export function PoolDetailPage() {
             </Link>
             <h1 className="text-3xl font-medium text-off-white mb-4">Pool Details</h1>
             <p className="text-mid-grey">Loading pool...</p>
-          </div>
+          </motion.div>
         </div>
         <Footer />
       </div>
@@ -912,7 +923,12 @@ export function PoolDetailPage() {
       <div className="min-h-screen bg-near-black text-off-white">
         <AppNav />
         <div className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl">
+          <motion.div
+            className="max-w-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <Link
               to="/pools"
               className="text-mid-grey hover:text-off-white transition-colors mb-6 inline-block"
@@ -921,7 +937,7 @@ export function PoolDetailPage() {
             </Link>
             <h1 className="text-3xl font-medium text-off-white mb-4">Pool Details</h1>
             <p className="text-mid-grey">Pool not found or incomplete data.</p>
-          </div>
+          </motion.div>
         </div>
         <Footer />
       </div>
@@ -934,17 +950,28 @@ export function PoolDetailPage() {
 
       <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8">
         {/* Back Link */}
-        <Link
-          to="/pools"
-          className="text-mid-grey hover:text-off-white transition-colors mb-6 inline-block"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          ← Back to Pools
-        </Link>
+          <Link
+            to="/pools"
+            className="text-mid-grey hover:text-off-white transition-colors mb-6 inline-block"
+          >
+            ← Back to Pools
+          </Link>
+        </motion.div>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Panel - Pool Information */}
-          <div className="lg:col-span-2 space-y-8">
+          <motion.div
+            className="lg:col-span-2 space-y-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
             {/* Header */}
             <div>
               <h1 className="text-3xl font-medium text-off-white mb-2">{pool.displayName}</h1>
@@ -1474,10 +1501,15 @@ export function PoolDetailPage() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right Panel - Actions (Desktop) */}
-          <div className="hidden lg:block lg:col-span-1">
+          <motion.div
+            className="hidden lg:block lg:col-span-1"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             <ActionsPanel
               pool={pool}
               depositAmount={depositAmount}
@@ -1492,7 +1524,7 @@ export function PoolDetailPage() {
               isProcessing={isProcessing}
               currentStakedAmount={pool.user.stakedAmount}
             />
-          </div>
+          </motion.div>
         </div>
 
         {/* Mobile Action Button */}

@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useWallet } from '@txnlab/use-wallet-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { TransactionSigner } from 'algosdk'
+import { motion } from 'framer-motion'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { StepIndicator } from '../components/StepIndicator'
@@ -395,22 +396,44 @@ export function CreatePoolWizardPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-medium text-off-white mb-2">Create pool</h1>
-          <p className="text-mid-grey mb-8">Configure a permissionless incentive pool</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-3xl font-medium text-off-white mb-2">Create pool</h1>
+            <p className="text-mid-grey mb-8">Configure a permissionless incentive pool</p>
+          </motion.div>
 
-          <StepIndicator steps={STEPS} currentStep={currentStep} />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <StepIndicator steps={STEPS} currentStep={currentStep} />
+          </motion.div>
 
-          <div className="border-2 border-mid-grey/30 p-8 mb-8">
+          <motion.div
+            className="border-2 border-mid-grey/30 p-8 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             {renderStepContent()}
             {createError && (
               <div className="mt-4 p-4 border-2 border-red-500/50 bg-red-500/10 text-red-400 text-sm">
                 {createError}
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between">
+          <motion.div
+            className="flex items-center justify-between"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
@@ -438,7 +461,7 @@ export function CreatePoolWizardPage() {
                 variant="default"
               />
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
 
