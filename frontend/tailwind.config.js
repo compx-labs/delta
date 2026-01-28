@@ -13,7 +13,7 @@ export default {
         'slate-grey': '#5E646B',
         'mid-grey': '#A3A7AD',
         // Accent Colour (signal colour only)
-        'accent': '#f0fc03',
+        'accent': '#fae92f',
       },
       fontFamily: {
         mono: ['Space Mono', 'monospace'],
