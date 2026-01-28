@@ -398,10 +398,16 @@ export function PoolDetailPage() {
       ? Number(estimatedRewards) / (10 ** (rewardAssetInfo.decimals || 6))
       : 0
 
-    // Calculate rewards remaining (simplified - would need contract balance)
-    const rewardsRemaining = poolState.totalRewards && poolState.accruedRewards
-      ? Number(poolState.totalRewards - poolState.accruedRewards) / (10 ** (rewardAssetInfo.decimals || 6))
-      : 0
+    // Calculate rewards remaining
+    // totalRewards should be set when rewards are funded
+    // accruedRewards tracks how much has been distributed so far
+    const totalRewards = poolState.totalRewards
+    const accruedRewards = poolState.accruedRewards || BigInt(0)
+    
+    // Only calculate if totalRewards exists (means rewards were funded)
+    const rewardsRemaining = totalRewards !== undefined && totalRewards !== null
+      ? Number(totalRewards - accruedRewards) / (10 ** (rewardAssetInfo.decimals || 6))
+      : null
 
     return {
       id: poolId,
@@ -429,7 +435,7 @@ export function PoolDetailPage() {
         id: poolState.rewardAssetId?.toString() || '',
         decimals: rewardAssetInfo.decimals,
       }],
-      rewardsRemaining: rewardsRemaining > 0 ? [{
+      rewardsRemaining: rewardsRemaining !== null && rewardsRemaining > 0 ? [{
         symbol: rewardSymbol,
         amount: rewardsRemaining,
       }] : [],

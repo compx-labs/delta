@@ -143,7 +143,7 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
               <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">Stakers</th>
               <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">APR</th>
               <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Remaining rewards</th>
-              <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">End date</th>
+              <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Expected end date</th>
             </tr>
           </thead>
           <tbody>
@@ -292,7 +292,7 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
                       <span className="ml-2 text-off-white">{pool.stakers.toLocaleString()}</span>
                     </div>
                     <div>
-                      <span className="text-mid-grey">End date:</span>
+                      <span className="text-mid-grey">Expected end date:</span>
                       <span className="ml-2 text-off-white">{formatDate(pool.endDate)}</span>
                     </div>
                   </div>

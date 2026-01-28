@@ -1,6 +1,7 @@
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect, useContext, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useWallet } from '@txnlab/use-wallet-react'
+import { useQuery } from '@tanstack/react-query'
 import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { ManagePoolsTable } from '../components/ManagePoolsTable'
@@ -8,6 +9,9 @@ import { Dropdown } from '../components/Dropdown'
 import { StatusDot } from '../components/StatusDot'
 import { CopyField } from '../components/CopyField'
 import { WalletContext } from '../context/wallet'
+import { usePools } from '../context/poolsContext'
+import { useNetwork } from '../context/networkContext'
+import { fetchMultipleAssetInfo } from '../utils/assetUtils'
 import type { ManagePoolListItem, ManagePoolDetail } from '../types/pool'
 import { getPoolsCreatedBy, getManagePoolDetail } from '../services/manageService'
 
@@ -16,6 +20,8 @@ export function ManagePage() {
   const poolId = searchParams.get('poolId')
   const { activeAccount } = useWallet()
   const { setDisplayWalletConnectModal } = useContext(WalletContext)
+  const { poolStates } = usePools()
+  const { networkConfig } = useNetwork()
   
   const [pools, setPools] = useState<ManagePoolListItem[]>([])
   const [poolDetail, setPoolDetail] = useState<ManagePoolDetail | null>(null)
@@ -24,6 +30,26 @@ export function ManagePage() {
     status: 'all',
     type: 'all',
     search: '',
+  })
+
+  // Collect all unique asset IDs from pools
+  const assetIds = useMemo(() => {
+    const ids = new Set<string>()
+    poolStates.forEach((state) => {
+      if (state.stakedAssetId) ids.add(state.stakedAssetId.toString())
+      if (state.rewardAssetId) ids.add(state.rewardAssetId.toString())
+    })
+    return Array.from(ids)
+  }, [poolStates])
+
+  // Fetch asset information for all assets used in pools
+  const { 
+    data: assetInfoMap = new Map(),
+  } = useQuery({
+    queryKey: ['assetInfo', networkConfig.id, assetIds.join(',')],
+    queryFn: () => fetchMultipleAssetInfo(assetIds, networkConfig),
+    enabled: assetIds.length > 0 && !!networkConfig.indexerServer,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
   useEffect(() => {
@@ -40,16 +66,16 @@ export function ManagePage() {
         setPoolDetail(detail)
         setLoading(false)
       } else {
-        // Fetch pools list
+        // Fetch pools list with pool states and asset info
         setLoading(true)
-        const data = await getPoolsCreatedBy(activeAccount.address)
+        const data = await getPoolsCreatedBy(activeAccount.address, poolStates, assetInfoMap)
         setPools(data)
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [activeAccount?.address, poolId])
+  }, [activeAccount?.address, poolId, poolStates, assetInfoMap])
 
   const handleFilterChange = (key: 'status' | 'type' | 'search', value: string) => {
     setFilters(prev => ({
