@@ -1,3 +1,6 @@
+import { IoMdPlay } from 'react-icons/io'
+import { motion } from 'framer-motion'
+
 interface StepIndicatorProps {
   steps: string[]
   currentStep: number
@@ -27,15 +30,25 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
           return (
             <div
               key={stepNum}
-              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors flex-shrink-0 relative z-10 ${
+              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors flex-shrink-0 relative z-20 ${
                 isActive
-                  ? 'border-amber bg-amber text-off-white'
+                  ? 'border-off-white bg-near-black text-off-white'
                   : isCompleted
-                  ? 'border-amber bg-amber text-off-white'
+                  ? 'border-accent bg-near-black text-off-white'
                   : 'border-mid-grey/30 bg-near-black text-off-white'
               }`}
             >
-              {isCompleted ? '✓' : stepNum}
+              {isCompleted || isActive ? (
+                <motion.div
+                  animate={{ rotate: isCompleted ? 0 : -90 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="text-accent"
+                >
+                  <IoMdPlay className="w-4 h-4" />
+                </motion.div>
+              ) : (
+                stepNum
+              )}
             </div>
           )
         })}

@@ -5,7 +5,7 @@ export const createPoolSchema = z.object({
   reward_token: z.string().min(1, 'Reward token is required'),
   total_rewards: z.number().positive('Total rewards must be positive'),
   name: z.string().min(2, 'Name must be at least 2 characters').max(48, 'Name must be at most 48 characters'),
-  created_by: z.string().min(1, 'Created by is required').max(48, 'Created by must be at most 48 characters'),
+  created_by: z.string().min(1, 'Created by is required'),
   website_url: z.string().url('Invalid URL format').optional().or(z.literal('')),
   description: z.string().max(140, 'Description must be at most 140 characters').optional(),
   tags: z.array(z.string()).max(3, 'Maximum 3 tags allowed').optional(),

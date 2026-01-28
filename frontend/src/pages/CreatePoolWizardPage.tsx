@@ -7,6 +7,7 @@ import { AppNav } from '../components/AppNav'
 import { Footer } from '../components/Footer'
 import { StepIndicator } from '../components/StepIndicator'
 import { RadioGroup } from '../components/RadioGroup'
+import { AnimButton } from '../components/AnimButton'
 import { AssetSearchComboBox, type Asset } from '../components/AssetSearchComboBox'
 import { NumericInput } from '../components/NumericInput'
 import { DatePicker } from '../components/DatePicker'
@@ -20,7 +21,8 @@ import { fetchAccountBalances } from '../services/balanceService'
 import { 
   createPool as createPoolContract, 
   initPoolApr, 
-  fundRewardsActivateAndRegister 
+  fundRewardsAndActivate,
+  registerPool
 } from '../contracts/staking/user'
 import { MASTER_REPO_APP_ID } from '../constants/constants'
 import { useToast } from '../context/toastContext'
@@ -163,9 +165,14 @@ export function CreatePoolWizardPage() {
         description: 'Initializing pool with APR configuration...',
       },
       {
-        id: 'fund-activate-register',
+        id: 'fund-activate',
         name: 'Fund Rewards & Activate',
-        description: 'Funding rewards, activating pool, and registering with master repo...',
+        description: 'Funding rewards and activating pool...',
+      },
+      {
+        id: 'register',
+        name: 'Register Pool',
+        description: 'Registering pool with master repo...',
       },
     ]
 
@@ -201,7 +208,7 @@ export function CreatePoolWizardPage() {
       const rewardAmount = parseFloat(params.totalRewards)
 
       // Initial balance for the pool (minimum balance for app account)
-      const initialBalance = 1_000_000 // 1 ALGO in microAlgos
+      const initialBalance = 400_000 // 0.4 ALGO in microAlgos
 
       // Step 1: Create or resume pool metadata
       if (resumePoolId && resumePool) {
@@ -291,19 +298,29 @@ export function CreatePoolWizardPage() {
         console.log('Fund/activate/register step already completed, skipping...')
         updateStep('fund-activate-register')
       } else {
-        // Step 4: Transaction Group 3 - Fund rewards, activate pool, and register
-        console.log('Funding rewards, activating pool, and registering...')
-        updateStep('fund-activate-register')
-        await fundRewardsActivateAndRegister({
+        // Step 4: Transaction Group 3 - Fund rewards and activate pool
+        console.log('Funding rewards and activating pool...')
+        updateStep('fund-activate')
+        await fundRewardsAndActivate({
           address,
           signer,
           poolAppId: parseInt(poolAppId, 10),
-          masterRepoAppId: Number(MASTER_REPO_APP_ID),
           rewardAssetId: parseInt(params.rewardAssetId, 10),
           rewardAmount,
           rewardAssetDecimals,
         })
-        console.log('Pool funded, activated, and registered')
+        console.log('Pool funded and activated')
+
+        // Step 5: Register pool with master repo
+        console.log('Registering pool with master repo...')
+        updateStep('register')
+        await registerPool({
+          address,
+          signer,
+          masterRepoAppId: Number(MASTER_REPO_APP_ID),
+          poolAppId: parseInt(poolAppId, 10),
+        })
+        console.log('Pool registered')
 
         // Mark final step as completed and set status to completed
         await updatePool(createdPoolMetadata.id, {
@@ -402,13 +419,12 @@ export function CreatePoolWizardPage() {
                 Continue
               </button>
             ) : (
-              <button
+              <AnimButton
+                text={isSigning ? 'Signing...' : 'Confirm and sign'}
                 onClick={handleCreatePool}
                 disabled={isSigning}
-                className="px-6 py-2 bg-amber text-off-white font-medium hover:bg-amber/90 transition-colors disabled:opacity-50"
-              >
-                {isSigning ? 'Signing...' : 'Confirm and sign'}
-              </button>
+                variant="default"
+              />
             )}
           </div>
         </div>
@@ -727,6 +743,17 @@ function Step5Review({
     return new Date(dateString).toLocaleString()
   }
 
+  const formatNumber = (value?: string) => {
+    if (!value) return '--'
+    const num = Number(value)
+    if (isNaN(num)) return value
+    // Format with thousand separators, no decimal places for whole numbers
+    return num.toLocaleString('en-US', { 
+      maximumFractionDigits: num % 1 === 0 ? 0 : 20,
+      useGrouping: true
+    })
+  }
+
   // Fetch account balances for checking opt-ins and balances
   const { data: accountBalances } = useQuery({
     queryKey: ['preflightBalances', activeAccount?.address, networkConfig.id],
@@ -800,7 +827,7 @@ function Step5Review({
           />
           <ReviewRow
             label="Total Rewards"
-            value={params.totalRewards ? `${params.totalRewards} ${assets.reward?.symbol || ''}` : '--'}
+            value={params.totalRewards ? `${formatNumber(params.totalRewards)} ${assets.reward?.symbol || ''}` : '--'}
           />
           <ReviewRow
             label="Start"

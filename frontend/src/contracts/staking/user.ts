@@ -466,7 +466,7 @@ export async function registerPool({
     const mbrTxn = masterRepoClient.algorand.createTransaction.payment({
       sender: address,
       receiver: masterRepoClient.appAddress,
-      amount: AlgoAmount.MicroAlgos(100_000), // MBR for registration
+      amount: AlgoAmount.MicroAlgos(22_500), // MBR for registration
       note: "Pool registration MBR",
       maxFee: MAX_FEE,
     });
@@ -495,13 +495,12 @@ export async function registerPool({
 }
 
 /**
- * Funds rewards, activates pool, and registers pool in a single transaction group
+ * Funds rewards and activates pool in a single transaction group
  */
-export async function fundRewardsActivateAndRegister({
+export async function fundRewardsAndActivate({
   address,
   signer,
   poolAppId,
-  masterRepoAppId,
   rewardAssetId,
   rewardAmount,
   rewardAssetDecimals = 6,
@@ -509,17 +508,13 @@ export async function fundRewardsActivateAndRegister({
   address: string;
   signer: TransactionSigner;
   poolAppId: number;
-  masterRepoAppId: number;
   rewardAssetId: number;
   rewardAmount: number;
   rewardAssetDecimals?: number;
 }): Promise<string[]> {
   try {
     const stakingClient = await getStakingClient(signer, address, poolAppId);
-    const masterRepoClient = await getMasterRepoClient(signer, address, masterRepoAppId);
-    
     stakingClient.algorand.setDefaultSigner(signer);
-    masterRepoClient.algorand.setDefaultSigner(signer);
 
     const upscaledRewardAmount = Math.floor(rewardAmount * 10 ** rewardAssetDecimals);
 
@@ -533,17 +528,9 @@ export async function fundRewardsActivateAndRegister({
       maxFee: MAX_FEE,
     });
 
-    // Create MBR payment transaction for registration
-    const mbrTxn = masterRepoClient.algorand.createTransaction.payment({
-      sender: address,
-      receiver: masterRepoClient.appAddress,
-      amount: AlgoAmount.MicroAlgos(100_000), // MBR for registration
-      note: "Pool registration MBR",
-      maxFee: MAX_FEE,
-    });
-
-    // Create a combined transaction group using the staking client's composer
-    const group = stakingClient.newGroup()
+    // Create a transaction group with fundRewards and setContractActive
+    const result = await stakingClient
+      .newGroup()
       .fundRewards({
         args: {
           rewardFundingTxn,
@@ -557,33 +544,15 @@ export async function fundRewardsActivateAndRegister({
         sender: address,
         maxFee: MAX_FEE,
       })
-
-    // Get the composer and add the master repo registration call
-    const composer = await group.composer();
-    
-    // Create the master repo registration transaction
-    const registerTxn = await masterRepoClient.createTransaction.registerContract({
-      args: {
-        app: BigInt(poolAppId),
-        mbrTxn,
-      },
-      sender: address,
-      maxFee: MAX_FEE,
-    });
-
-    // Add the master repo registration transaction to the composer
-    composer.addTransaction(registerTxn.transactions[0], signer);
-
-    // Send the combined transaction group
-    const result = await composer.send({
-      suppressLog: false,
-      coverAppCallInnerTransactionFees: true,
-      populateAppCallResources: true,
-    });
+      .send({
+        suppressLog: false,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+      });
 
     return result.txIds;
   } catch (error) {
-    console.error("Fund rewards, activate and register failed:", error);
+    console.error("Fund rewards and activate failed:", error);
     throw error;
   }
 }

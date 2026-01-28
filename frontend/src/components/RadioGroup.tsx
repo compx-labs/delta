@@ -30,7 +30,7 @@ export function RadioGroup({
               key={option.value}
               className={`flex items-start gap-3 p-4 border-2 cursor-pointer transition-colors ${
                 isSelected
-                  ? 'border-amber bg-amber/10'
+                  ? 'border-off-white bg-off-white/10'
                   : 'border-mid-grey/30 hover:border-mid-grey'
               }`}
             >
@@ -39,10 +39,11 @@ export function RadioGroup({
                 value={option.value}
                 checked={isSelected}
                 onChange={(e) => onChange(e.target.value)}
-                className="mt-1 w-4 h-4 text-amber focus:ring-amber"
+                className="mt-1 w-4 h-4 focus:ring-accent"
+                style={{ accentColor: '#f0fc03' }}
               />
               <div className="flex-1">
-                <div className={`text-sm font-medium ${isSelected ? 'text-amber' : 'text-off-white'}`}>
+                <div className="text-sm font-medium text-off-white">
                   {option.label}
                 </div>
                 {option.description && (

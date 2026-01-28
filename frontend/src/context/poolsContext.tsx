@@ -49,8 +49,8 @@ interface PoolsContextType {
   masterRepoError: Error | null;
   poolsError: Error | null;
   // Refetch functions
-  refetchMasterRepo: () => void;
-  refetchPools: () => void;
+  refetchMasterRepo: () => Promise<any>;
+  refetchPools: () => Promise<any>;
 }
 
 const PoolsContext = createContext<PoolsContextType | undefined>(undefined);
@@ -189,6 +189,7 @@ export const PoolsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     queryFn: () => fetchRegisteredContracts(network, masterRepoAppId!),
     enabled: !!masterRepoAppId && !!network && !isNaN(masterRepoAppId),
     staleTime: 30 * 1000, // Data is fresh for 30 seconds
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     refetchOnWindowFocus: false,
   });
 
@@ -203,6 +204,7 @@ export const PoolsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     queryFn: () => fetchAllPoolStates(network, registeredAppIds),
     enabled: registeredAppIds.length > 0 && !!network,
     staleTime: 30 * 1000, // Data is fresh for 30 seconds
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
     refetchOnWindowFocus: false,
   });
 

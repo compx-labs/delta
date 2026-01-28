@@ -17,8 +17,11 @@ import { StatusDot } from '../components/StatusDot'
 import { StatItem } from '../components/StatItem'
 import { AnimButton } from '../components/AnimButton'
 import type { PoolDetail } from '../types/pool'
+import { getPoolByAppId } from '../services/poolApiService'
+import { ExternalLink } from 'lucide-react'
+import { useExplorer } from '../context/explorerContext'
 
-type TabId = 'assets' | 'stakers' | 'contract'
+type TabId = 'assets' | 'stakers' | 'contract' | 'metadata'
 
 interface TokenDetails {
   asset_id: number
@@ -126,7 +129,7 @@ function ActionsPanel({
           disabled={isProcessing}
           className={`flex-1 px-4 py-2 border-2 transition-colors ${
             !isWithdraw
-              ? 'border-amber bg-amber text-off-white'
+              ? 'border-off-white bg-off-white text-near-black'
               : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey hover:text-off-white'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
@@ -137,7 +140,7 @@ function ActionsPanel({
           disabled={isProcessing}
           className={`flex-1 px-4 py-2 border-2 transition-colors ${
             isWithdraw
-              ? 'border-amber bg-amber text-off-white'
+              ? 'border-off-white bg-off-white text-near-black'
               : 'border-mid-grey/30 text-mid-grey hover:border-mid-grey hover:text-off-white'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
@@ -157,7 +160,7 @@ function ActionsPanel({
             onChange={(e) => setDepositAmount(e.target.value)}
             placeholder="0.00"
             disabled={isProcessing}
-            className="flex-1 px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-amber disabled:opacity-50"
+            className="flex-1 px-4 py-2 border-2 border-mid-grey/30 bg-near-black text-off-white placeholder:text-mid-grey focus:outline-none focus:ring-1 focus:ring-off-white disabled:opacity-50"
           />
           <button 
             onClick={handleMax}
@@ -173,7 +176,7 @@ function ActionsPanel({
       <div className="space-y-3 mb-6">
         <div className="flex justify-between text-sm">
           <span className="text-mid-grey">APR</span>
-          <span className={`${pool.status === 'active' && pool.apr !== null ? 'text-amber' : 'text-mid-grey'}`}>
+          <span className="text-mid-grey">
             {pool.apr !== null ? `+${pool.apr.toFixed(2)}%` : '--'}
           </span>
         </div>
@@ -241,7 +244,7 @@ function ActionsPanel({
           text={isProcessing ? 'Processing...' : `${isWithdraw ? 'WITHDRAW' : 'DEPOSIT'} ${pool.depositAsset.symbol}`}
           onClick={handleAction}
           disabled={isProcessing || !depositAmount || parseFloat(depositAmount) <= 0}
-          variant="amber"
+          variant="default"
           className="w-full"
         />
       </div>
@@ -251,7 +254,7 @@ function ActionsPanel({
         text={isProcessing ? 'Processing...' : `Claim Rewards${totalClaimable > 0 ? ` (${pool.user.claimableRewards.map(r => `${r.amount.toFixed(2)} ${r.symbol}`).join(', ')})` : ''}`}
         onClick={onClaim}
         disabled={totalClaimable === 0 || isProcessing}
-        variant="amber"
+        variant="default"
         className="w-full"
       />
     </div>
@@ -332,6 +335,21 @@ export function PoolDetailPage() {
     },
     enabled: !!poolId,
     staleTime: 30 * 1000,
+  })
+
+  // Fetch pool metadata from database
+  const { data: poolMetadata, error: metadataError } = useQuery({
+    queryKey: ['poolMetadata', poolId],
+    queryFn: async () => {
+      if (!poolId) return null
+      const appId = Number(poolId)
+      if (isNaN(appId)) return null
+      // getPoolByAppId returns null for 404s, throws for other errors
+      return await getPoolByAppId(appId)
+    },
+    enabled: !!poolId && !isNaN(Number(poolId)),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false, // Don't retry on error - if it fails, we just won't show the tab
   })
 
   // Transform pool state to PoolDetail format
@@ -506,6 +524,48 @@ export function PoolDetailPage() {
   }, [pool, isTestnet])
 
   const totalClaimable = pool?.user.claimableRewards.reduce((sum, r) => sum + r.amount, 0) || 0
+
+  // Get explorer hook for generating links
+  const { getExplorerUrl } = useExplorer()
+
+  // NFD lookup function for creator address
+  const getNFDForAddress = async (address: string): Promise<{ name: string } | null> => {
+    try {
+      const nfdURL = `https://api.nf.domains/nfd/address?address=${address}&limit=1&view=thumbnail`
+      const response = await fetch(nfdURL)
+      const data = await response.json()
+      
+      if (!data || !Array.isArray(data) || data.length !== 1) {
+        return null
+      }
+      
+      const nfdBlob = data[0]
+      if (!nfdBlob.depositAccount || nfdBlob.depositAccount !== address) {
+        return null
+      }
+      
+      return { name: nfdBlob.name }
+    } catch (error) {
+      console.error('NFD fetch error:', error)
+      return null
+    }
+  }
+
+  // Fetch NFD for creator address
+  const { data: creatorNFD } = useQuery({
+    queryKey: ['creatorNFD', pool?.creator],
+    queryFn: () => pool?.creator ? getNFDForAddress(pool.creator) : null,
+    enabled: !!pool?.creator,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false,
+  })
+
+  // Switch away from metadata tab if metadata becomes unavailable
+  useEffect(() => {
+    if (activeTab === 'metadata' && (!poolMetadata || metadataError)) {
+      setActiveTab('assets')
+    }
+  }, [activeTab, poolMetadata, metadataError])
 
   // Helper function for optimistic updates
   const optimisticallyUpdateStake = (amount: number, isUnstake: boolean) => {
@@ -899,7 +959,7 @@ export function PoolDetailPage() {
                 <div>
                   <div className="text-xs text-mid-grey mb-1">APR</div>
                   <div className={`text-xl font-medium ${
-                    pool.status === 'active' && pool.apr !== null ? 'text-amber' : 'text-off-white'
+                    pool.apr !== null ? 'text-accent' : 'text-off-white'
                   }`}>
                     {pool.apr !== null ? `${pool.apr.toFixed(2)}%` : '--'}
                   </div>
@@ -933,11 +993,23 @@ export function PoolDetailPage() {
             <div>
               {/* Tab Headers */}
               <div className="flex gap-2 border-b-2 border-mid-grey/30 mb-4">
+                {poolMetadata && !metadataError && (
+                  <button
+                    onClick={() => setActiveTab('metadata')}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'metadata'
+                        ? 'text-off-white border-b-2 border-off-white -mb-[2px]'
+                        : 'text-mid-grey hover:text-off-white'
+                    }`}
+                  >
+                    Metadata
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveTab('assets')}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'assets'
-                      ? 'text-amber border-b-2 border-amber -mb-[2px]'
+                      ? 'text-off-white border-b-2 border-off-white -mb-[2px]'
                       : 'text-mid-grey hover:text-off-white'
                   }`}
                 >
@@ -947,7 +1019,7 @@ export function PoolDetailPage() {
                   onClick={() => setActiveTab('stakers')}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'stakers'
-                      ? 'text-amber border-b-2 border-amber -mb-[2px]'
+                      ? 'text-off-white border-b-2 border-off-white -mb-[2px]'
                       : 'text-mid-grey hover:text-off-white'
                   }`}
                 >
@@ -957,7 +1029,7 @@ export function PoolDetailPage() {
                   onClick={() => setActiveTab('contract')}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'contract'
-                      ? 'text-amber border-b-2 border-amber -mb-[2px]'
+                      ? 'text-off-white border-b-2 border-off-white -mb-[2px]'
                       : 'text-mid-grey hover:text-off-white'
                   }`}
                 >
@@ -1005,7 +1077,7 @@ export function PoolDetailPage() {
                               href={depositTokenDetails.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-sm text-amber hover:text-amber/80 break-all"
+                              className="text-sm text-off-white hover:text-mid-grey break-all"
                             >
                               {depositTokenDetails.url}
                             </a>
@@ -1018,7 +1090,7 @@ export function PoolDetailPage() {
                               href={depositTokenDetails.verification_details.project_url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-sm text-amber hover:text-amber/80 break-all"
+                              className="text-sm text-off-white hover:text-mid-grey break-all"
                             >
                               {depositTokenDetails.verification_details.project_url}
                             </a>
@@ -1039,7 +1111,7 @@ export function PoolDetailPage() {
                                   href={depositTokenDetails.verification_details.discord_url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-amber hover:text-amber/80"
+                                  className="text-off-white hover:text-mid-grey"
                                 >
                                   Discord
                                 </a>
@@ -1049,7 +1121,7 @@ export function PoolDetailPage() {
                                   href={depositTokenDetails.verification_details.telegram_url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-amber hover:text-amber/80"
+                                  className="text-off-white hover:text-mid-grey"
                                 >
                                   Telegram
                                 </a>
@@ -1059,7 +1131,7 @@ export function PoolDetailPage() {
                                   href={`https://twitter.com/${depositTokenDetails.verification_details.twitter_username}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-amber hover:text-amber/80"
+                                  className="text-off-white hover:text-mid-grey"
                                 >
                                   Twitter
                                 </a>
@@ -1114,7 +1186,7 @@ export function PoolDetailPage() {
                                       href={rewardDetails.url} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
-                                      className="text-sm text-amber hover:text-amber/80 break-all"
+                                      className="text-sm text-off-white hover:text-mid-grey break-all"
                                     >
                                       {rewardDetails.url}
                                     </a>
@@ -1127,7 +1199,7 @@ export function PoolDetailPage() {
                                       href={rewardDetails.verification_details.project_url} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
-                                      className="text-sm text-amber hover:text-amber/80 break-all"
+                                      className="text-sm text-off-white hover:text-mid-grey break-all"
                                     >
                                       {rewardDetails.verification_details.project_url}
                                     </a>
@@ -1148,7 +1220,7 @@ export function PoolDetailPage() {
                                           href={rewardDetails.verification_details.discord_url} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="text-amber hover:text-amber/80"
+                                          className="text-off-white hover:text-mid-grey"
                                         >
                                           Discord
                                         </a>
@@ -1158,7 +1230,7 @@ export function PoolDetailPage() {
                                           href={rewardDetails.verification_details.telegram_url} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="text-amber hover:text-amber/80"
+                                          className="text-off-white hover:text-mid-grey"
                                         >
                                           Telegram
                                         </a>
@@ -1168,7 +1240,7 @@ export function PoolDetailPage() {
                                           href={`https://twitter.com/${rewardDetails.verification_details.twitter_username}`} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="text-amber hover:text-amber/80"
+                                          className="text-off-white hover:text-mid-grey"
                                         >
                                           Twitter
                                         </a>
@@ -1291,32 +1363,106 @@ export function PoolDetailPage() {
                 )}
 
                 {activeTab === 'contract' && (
-                  <div className="space-y-4">
-                    <div className="border-2 border-mid-grey/30 p-4">
-                      <div className="text-xs text-mid-grey mb-1">Pool ID</div>
-                      <div className="text-sm text-off-white font-mono">{pool.id}</div>
+                  <div className="border-2 border-mid-grey/30 p-4">
+                    <div className="space-y-4">
+                      {pool.contractRef.appId && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Contract App ID</div>
+                          <a
+                            href={getExplorerUrl('application', pool.contractRef.appId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-off-white hover:text-mid-grey font-mono inline-flex items-center gap-1"
+                          >
+                            {pool.contractRef.appId}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+                      {pool.schedule.startTime && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Start Time</div>
+                          <div className="text-sm text-off-white">{formatDate(pool.schedule.startTime)}</div>
+                        </div>
+                      )}
+                      {pool.schedule.endTime && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">End Time</div>
+                          <div className="text-sm text-off-white">{formatDate(pool.schedule.endTime)}</div>
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-xs text-mid-grey mb-1">Creator Address</div>
+                        <a
+                          href={getExplorerUrl('address', pool.creator)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-off-white hover:text-mid-grey font-mono break-all inline-flex items-center gap-1"
+                        >
+                          {creatorNFD?.name || pool.creator}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
-                    {pool.contractRef.appId && (
-                      <div className="border-2 border-mid-grey/30 p-4">
-                        <div className="text-xs text-mid-grey mb-1">Contract App ID</div>
-                        <div className="text-sm text-off-white font-mono">{pool.contractRef.appId}</div>
-                      </div>
-                    )}
-                    {pool.schedule.startTime && (
-                      <div className="border-2 border-mid-grey/30 p-4">
-                        <div className="text-xs text-mid-grey mb-1">Start Time</div>
-                        <div className="text-sm text-off-white">{formatDate(pool.schedule.startTime)}</div>
-                      </div>
-                    )}
-                    {pool.schedule.endTime && (
-                      <div className="border-2 border-mid-grey/30 p-4">
-                        <div className="text-xs text-mid-grey mb-1">End Time</div>
-                        <div className="text-sm text-off-white">{formatDate(pool.schedule.endTime)}</div>
-                      </div>
-                    )}
-                    <div className="border-2 border-mid-grey/30 p-4">
-                      <div className="text-xs text-mid-grey mb-1">Creator Address</div>
-                      <div className="text-sm text-off-white font-mono break-all">{pool.creator}</div>
+                  </div>
+                )}
+
+                {activeTab === 'metadata' && poolMetadata && (
+                  <div className="border-2 border-mid-grey/30 p-4">
+                    <div className="space-y-4">
+                      {poolMetadata.name && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Name</div>
+                          <div className="text-sm text-off-white">{poolMetadata.name}</div>
+                        </div>
+                      )}
+                      {poolMetadata.description && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Description</div>
+                          <div className="text-sm text-off-white leading-relaxed whitespace-pre-wrap">{poolMetadata.description}</div>
+                        </div>
+                      )}
+                      {poolMetadata.website_url && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Website</div>
+                          <a 
+                            href={poolMetadata.website_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-off-white hover:text-mid-grey break-all inline-flex items-center gap-1"
+                          >
+                            {poolMetadata.website_url}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+                      {poolMetadata.tags && poolMetadata.tags.length > 0 && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-2">Tags</div>
+                          <div className="flex flex-wrap gap-2">
+                            {poolMetadata.tags.map((tag, index) => (
+                              <span 
+                                key={index}
+                                className="px-3 py-1 text-xs border-2 border-mid-grey/30 text-mid-grey"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {poolMetadata.created_by && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Created By</div>
+                          <div className="text-sm text-off-white font-mono break-all">{poolMetadata.created_by}</div>
+                        </div>
+                      )}
+                      {poolMetadata.created_at && (
+                        <div>
+                          <div className="text-xs text-mid-grey mb-1">Created At</div>
+                          <div className="text-sm text-off-white">{new Date(poolMetadata.created_at).toLocaleString()}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1347,7 +1493,7 @@ export function PoolDetailPage() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="w-full px-6 py-4 bg-amber text-off-white font-medium border-t-2 border-amber/20"
+            className="w-full px-6 py-4 bg-off-white text-near-black font-medium border-t-2 border-off-white/20"
           >
             Deposit | Withdraw | Claim
           </button>

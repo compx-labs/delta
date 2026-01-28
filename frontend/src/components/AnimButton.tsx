@@ -5,13 +5,13 @@ interface AnimButtonProps {
   text: string
   onClick: () => void
   disabled?: boolean
-  variant?: 'default' | 'amber'
+  variant?: 'default' | 'accent'
   className?: string
 }
 
 export function AnimButton({ text, onClick, disabled = false, variant = 'default', className = '' }: AnimButtonProps) {
-  const baseClasses = variant === 'amber'
-    ? 'border-amber bg-amber text-off-white hover:bg-amber/90'
+  const baseClasses = variant === 'accent'
+    ? 'border-off-white bg-off-white text-near-black hover:bg-off-white/90'
     : 'bg-transparent border-2 border-off-white text-off-white'
   
   const disabledClasses = 'border-mid-grey/30 text-mid-grey cursor-not-allowed opacity-50'

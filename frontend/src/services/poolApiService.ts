@@ -73,10 +73,20 @@ export async function getPoolById(id: string): Promise<Pool> {
 
 /**
  * Get pool by app_id (on-chain application ID)
+ * Returns null if pool is not found (404), throws for other errors
  */
-export async function getPoolByAppId(appId: number): Promise<Pool> {
-  const response = await axios.get<Pool>(`${API_BASE_URL}/app/${appId}`)
-  return response.data
+export async function getPoolByAppId(appId: number): Promise<Pool | null> {
+  try {
+    const response = await axios.get<Pool>(`${API_BASE_URL}/app/${appId}`)
+    return response.data
+  } catch (error) {
+    // Handle 404 as "not found" - return null instead of throwing
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null
+    }
+    // Re-throw other errors
+    throw error
+  }
 }
 
 /**

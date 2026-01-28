@@ -82,39 +82,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-// Get pool by ID
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
-
-    const { data: pool, error } = await supabase
-      .from('pools')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Pool not found' })
-      }
-      console.error('Database error:', error)
-      return res.status(500).json({
-        error: 'Failed to fetch pool',
-        details: error.message
-      })
-    }
-
-    res.json(pool)
-  } catch (error) {
-    console.error('Unexpected error:', error)
-    res.status(500).json({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    })
-  }
-})
-
-// Get pool by app_id
+// Get pool by app_id - MUST come before /:id route to avoid route conflicts
 router.get('/app/:appId', async (req: Request, res: Response) => {
   try {
     const appIdParam = req.params.appId
@@ -124,10 +92,69 @@ router.get('/app/:appId', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid app ID' })
     }
 
-    const { data: pool, error } = await supabase
+    console.log(`[GET /pools/app/:appId] Looking up pool with app_id: ${appId} (type: ${typeof appId})`)
+
+    // Try querying with the number first
+    let { data: pool, error } = await supabase
       .from('pools')
       .select('*')
       .eq('app_id', appId)
+      .single()
+
+    // If not found, try querying as string (in case of type mismatch)
+    if (error && error.code === 'PGRST116') {
+      console.log(`[GET /pools/app/:appId] Not found as number, trying as string...`)
+      const { data: poolStr, error: errorStr } = await supabase
+        .from('pools')
+        .select('*')
+        .eq('app_id', appIdParam)
+        .single()
+      
+      if (!errorStr && poolStr) {
+        pool = poolStr
+        error = null
+        console.log(`[GET /pools/app/:appId] Found pool when querying as string`)
+      }
+    }
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log(`[GET /pools/app/:appId] Pool not found for app_id: ${appId}`)
+        // Let's also check if there are any pools with similar app_ids for debugging
+        const { data: allPools } = await supabase
+          .from('pools')
+          .select('id, app_id, name')
+          .limit(10)
+        console.log(`[GET /pools/app/:appId] Sample pools in database:`, allPools)
+        return res.status(404).json({ error: 'Pool not found' })
+      }
+      console.error('[GET /pools/app/:appId] Database error:', error)
+      return res.status(500).json({
+        error: 'Failed to fetch pool',
+        details: error.message
+      })
+    }
+
+    console.log(`[GET /pools/app/:appId] Found pool:`, { id: pool.id, app_id: pool.app_id, name: pool.name })
+    res.json(pool)
+  } catch (error) {
+    console.error('[GET /pools/app/:appId] Unexpected error:', error)
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
+})
+
+// Get pool by ID - MUST come after /app/:appId route
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+
+    const { data: pool, error } = await supabase
+      .from('pools')
+      .select('*')
+      .eq('id', id)
       .single()
 
     if (error) {

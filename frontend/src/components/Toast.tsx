@@ -92,7 +92,7 @@ export function Toast() {
                             isCompleted
                               ? 'text-green-500'
                               : isCurrent
-                              ? 'text-amber'
+                              ? 'text-accent'
                               : 'text-mid-grey'
                           }`}
                         >

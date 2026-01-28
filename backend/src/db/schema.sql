@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS pools (
   reward_token VARCHAR(255) NOT NULL,
   total_rewards DECIMAL(20, 6) NOT NULL,
   name VARCHAR(48) NOT NULL,
-  created_by VARCHAR(48),
+  created_by TEXT,
   website_url TEXT,
   description VARCHAR(140),
   tags TEXT[], -- Array of tags (up to 3)
