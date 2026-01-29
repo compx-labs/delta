@@ -6,8 +6,8 @@ export const CreateSection: React.FC = () => {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <TrendingUp className="w-6 h-6 text-amber" />
-        <h2 className="text-2xl font-medium text-off-white uppercase tracking-wide">
-          CREATE POOL
+        <h2 className="text-2xl font-medium text-off-white">
+          Create pool
         </h2>
       </div>
 

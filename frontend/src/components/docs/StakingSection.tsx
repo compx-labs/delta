@@ -6,8 +6,8 @@ export const StakingSection: React.FC = () => {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <Wallet className="w-6 h-6 text-amber" />
-        <h2 className="text-2xl font-medium text-off-white uppercase tracking-wide">
-          STAKING
+        <h2 className="text-2xl font-medium text-off-white">
+          Staking
         </h2>
       </div>
 

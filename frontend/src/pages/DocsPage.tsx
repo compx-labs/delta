@@ -85,7 +85,7 @@ export function DocsPage() {
             className="inline-flex items-center gap-2 text-amber hover:text-amber/80 transition-colors text-sm md:text-base group"
           >
             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform duration-150" />
-            <span className="uppercase tracking-wide">Back to Home</span>
+            <span>Back to Home</span>
           </Link>
         </div>
 
@@ -115,9 +115,9 @@ export function DocsPage() {
           >
             <div className="bg-near-black border-2 border-mid-grey/30 sticky top-24">
               <div className="p-4 md:p-6">
-                <h3 className="text-lg font-medium text-off-white uppercase tracking-wide mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-medium text-off-white mb-4 flex items-center gap-2">
                   <Target className="w-5 h-5 text-amber" />
-                  NAVIGATION
+                  Navigation
                 </h3>
                 <nav className="space-y-2">
                   {sections.map((section) => {

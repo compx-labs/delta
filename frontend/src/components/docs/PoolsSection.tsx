@@ -6,8 +6,8 @@ export const PoolsSection: React.FC = () => {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <Coins className="w-6 h-6 text-amber" />
-        <h2 className="text-2xl font-medium text-off-white uppercase tracking-wide">
-          POOLS
+        <h2 className="text-2xl font-medium text-off-white">
+          Pools
         </h2>
       </div>
 

@@ -28,7 +28,7 @@ import {
 } from '../contracts/staking/user'
 import { MASTER_REPO_APP_ID } from '../constants/constants'
 import { useToast } from '../context/toastContext'
-import { getPoolById } from '../services/poolApiService'
+import { getPoolById, getAllPools, type Pool } from '../services/poolApiService'
 
 const STEPS = ['Type', 'Assets', 'Rewards', 'Metadata', 'Review']
 
@@ -46,7 +46,7 @@ export function CreatePoolWizardPage() {
   const [isSigning, setIsSigning] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [resumePoolId, setResumePoolId] = useState<string | null>(null)
-  const [resumePool, setResumePool] = useState<{ id: string; app_id: number | null; step_create_completed?: boolean; step_init_completed?: boolean; step_fund_activate_register_completed?: boolean } | null>(null)
+  const [resumePool, setResumePool] = useState<Pool | null>(null)
 
   const currentStep = parseInt(params.step || '1', 10)
 
@@ -156,6 +156,57 @@ export function CreatePoolWizardPage() {
     setIsSigning(true)
     setCreateError(null)
 
+    // CRITICAL: Check for existing incomplete pool BEFORE creating a new one
+    // This prevents duplicate pools and protects funds that may have already been sent
+    let poolToUse: Pool | null = null
+    
+    // First, check if we already have a resume pool set
+    if (resumePoolId && resumePool) {
+      // Reload from database to ensure we have the latest state
+      try {
+        const latestPool = await getPoolById(resumePoolId)
+        poolToUse = latestPool
+        console.log('Using existing resume pool (reloaded):', poolToUse.id)
+        setResumePool(latestPool) // Update state with latest data
+      } catch (error) {
+        console.error('Failed to reload resume pool, using cached:', error)
+        poolToUse = resumePool // Fallback to cached data
+      }
+    } else {
+      // Check database for any incomplete pools for this user
+      // Match by user address and creation status
+      try {
+        const allPools = await getAllPools()
+        const incompletePools = allPools.filter(
+          (pool: Pool) =>
+            pool.created_by === activeAccount.address &&
+            pool.creation_status !== 'completed'
+        )
+        
+        if (incompletePools.length > 0) {
+          // Use the most recent incomplete pool
+          const mostRecent = incompletePools.sort(
+            (a: Pool, b: Pool) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )[0]
+          
+          // Reload from database to ensure we have the latest state
+          const latestPool = await getPoolById(mostRecent.id)
+          poolToUse = latestPool
+          console.log('Found existing incomplete pool, will resume:', poolToUse.id)
+          
+          // Update state and URL to reflect we're resuming
+          setResumePoolId(poolToUse.id)
+          setResumePool(latestPool)
+          const newParams = new URLSearchParams(searchParams)
+          newParams.set('resume', poolToUse.id)
+          setSearchParams(newParams, { replace: true })
+        }
+      } catch (error) {
+        console.error('Failed to check for existing pools:', error)
+        // Continue with creation if check fails
+      }
+    }
+
     // Define the steps for multi-step toast
     const steps = [
       {
@@ -181,7 +232,7 @@ export function CreatePoolWizardPage() {
     ]
 
     // Open multi-step toast
-    openMultiStepToast(resumePoolId ? 'Resuming Pool Creation' : 'Creating Pool', steps)
+    openMultiStepToast(poolToUse ? 'Resuming Pool Creation' : 'Creating Pool', steps)
 
     let createdPoolMetadata: { id: string; app_id?: number | null; creation_status?: string } | null = null
 
@@ -215,15 +266,19 @@ export function CreatePoolWizardPage() {
       const initialBalance = 400_000 // 0.4 ALGO in microAlgos
 
       // Step 1: Create or resume pool metadata
-      if (resumePoolId && resumePool) {
-        // Resuming existing pool
-        createdPoolMetadata = resumePool as { id: string; app_id?: number | null; creation_status?: string }
+      if (poolToUse) {
+        // Resuming existing pool - use the pool we found
+        createdPoolMetadata = poolToUse as { id: string; app_id?: number | null; creation_status?: string }
         await updatePool(createdPoolMetadata.id, {
           creation_status: 'creating',
         })
         console.log('Resuming pool creation:', createdPoolMetadata)
+        
+        // Update resumePool state to match
+        setResumePoolId(poolToUse.id)
+        setResumePool(poolToUse)
       } else {
-        // Create new pool metadata
+        // Create new pool metadata only if no existing pool found
         const poolData = {
           stake_token: params.stakeAssetId,
           reward_token: params.rewardAssetId,
@@ -240,14 +295,22 @@ export function CreatePoolWizardPage() {
         })
         createdPoolMetadata = { ...newPool, creation_status: 'creating' }
         console.log('Pool metadata created:', createdPoolMetadata)
+        
+        // Save pool ID to URL params so we can resume if user navigates away
+        const newParams = new URLSearchParams(searchParams)
+        newParams.set('resume', newPool.id)
+        setSearchParams(newParams, { replace: true })
+        setResumePoolId(newPool.id)
+        setResumePool(newPool)
+        poolToUse = newPool
       }
 
       // Determine which steps need to be executed based on resume state
       let poolAppId: string
       
-      if (resumePool?.app_id && resumePool?.step_create_completed) {
+      if (poolToUse?.app_id && poolToUse?.step_create_completed) {
         // Resume: app already created, use existing app_id
-        poolAppId = resumePool.app_id.toString()
+        poolAppId = poolToUse.app_id.toString()
         console.log('Resuming with existing app ID:', poolAppId)
       } else {
         // Step 2: Transaction Group 1 - Create pool application
@@ -262,13 +325,16 @@ export function CreatePoolWizardPage() {
         console.log('Pool created with app ID:', poolAppId)
 
         // Update backend with app_id and mark step as completed
-        await updatePool(createdPoolMetadata.id, {
+        const updatedPool = await updatePool(createdPoolMetadata.id, {
           app_id: parseInt(poolAppId, 10),
           step_create_completed: true,
         })
+        // Update local state to reflect progress
+        poolToUse = updatedPool
+        setResumePool(updatedPool)
       }
 
-      if (resumePool?.step_init_completed) {
+      if (poolToUse?.step_init_completed) {
         // Resume: init already completed, skip
         console.log('Init step already completed, skipping...')
         updateStep('init')
@@ -292,12 +358,15 @@ export function CreatePoolWizardPage() {
         console.log('Pool initialized')
 
         // Mark init step as completed
-        await updatePool(createdPoolMetadata.id, {
+        const updatedPool = await updatePool(createdPoolMetadata.id, {
           step_init_completed: true,
         })
+        // Update local state to reflect progress
+        poolToUse = updatedPool
+        setResumePool(updatedPool)
       }
 
-      if (resumePool?.step_fund_activate_register_completed) {
+      if (poolToUse?.step_fund_activate_register_completed) {
         // Resume: final step already completed, skip
         console.log('Fund/activate/register step already completed, skipping...')
         updateStep('fund-activate-register')
@@ -327,10 +396,13 @@ export function CreatePoolWizardPage() {
         console.log('Pool registered')
 
         // Mark final step as completed and set status to completed
-        await updatePool(createdPoolMetadata.id, {
+        const updatedPool = await updatePool(createdPoolMetadata.id, {
           step_fund_activate_register_completed: true,
           creation_status: 'completed',
         })
+        // Update local state to reflect completion
+        poolToUse = updatedPool
+        setResumePool(updatedPool)
 
         // Refetch pools data to include the newly created pool
         console.log('Refetching pools data...')

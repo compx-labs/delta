@@ -6,8 +6,8 @@ export const OverviewSection: React.FC = () => {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <Radio className="w-6 h-6 text-amber" />
-        <h2 className="text-2xl font-medium text-off-white uppercase tracking-wide">
-          OVERVIEW
+        <h2 className="text-2xl font-medium text-off-white">
+          Overview
         </h2>
       </div>
 

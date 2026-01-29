@@ -6,8 +6,8 @@ export const FaucetSection: React.FC = () => {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <Droplets className="w-6 h-6 text-amber" />
-        <h2 className="text-2xl font-medium text-off-white uppercase tracking-wide">
-          RESOURCE STATION
+        <h2 className="text-2xl font-medium text-off-white">
+          Resource Station
         </h2>
       </div>
 

@@ -6,8 +6,8 @@ export const RewardsSection: React.FC = () => {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <FileText className="w-6 h-6 text-amber" />
-        <h2 className="text-2xl font-medium text-off-white uppercase tracking-wide">
-          REWARDS
+        <h2 className="text-2xl font-medium text-off-white">
+          Rewards
         </h2>
       </div>
 
