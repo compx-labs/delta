@@ -33,12 +33,13 @@ export class Staking extends Contract {
 
   reward_rate = GlobalState<Uint64>();
   start_time = GlobalState<Uint64>();
-  end_time = GlobalState<Uint64>();
   last_update_time = GlobalState<Uint64>();
 
   total_rewards = GlobalState<Uint64>();
   accrued_rewards = GlobalState<Uint64>();
   apr_bps = GlobalState<Uint64>();
+  rewards_exhausted = GlobalState<Uint64>();
+  rewards_paid = GlobalState<Uint64>();
 
   admin_address = GlobalState<Account>();
   super_admin_address = GlobalState<Account>();
@@ -57,6 +58,7 @@ export class Staking extends Contract {
     this.master_repo_app.value = masterRepoApp;
     this.platform_fee_bps.value = new Uint64(0);
     this.platform_fees_accrued.value = new Uint64(0);
+    this.rewards_paid.value = new Uint64(0);
   }
 
   @abimethod({ allowActions: "NoOp" })
@@ -83,7 +85,6 @@ export class Staking extends Contract {
     this.total_rewards.value = new Uint64(rewardAmount);
     this.reward_rate.value = new Uint64(0);
     this.start_time.value = new Uint64(start);
-    this.end_time.value = new Uint64(end);
     this.last_update_time.value = new Uint64(start);
     this.reward_per_token.value = new Uint64(0);
     this.total_staked.value = new Uint64(0);
@@ -91,6 +92,8 @@ export class Staking extends Contract {
     this.accrued_rewards.value = new Uint64(0);
     this.apr_bps.value = new Uint64(aprBps);
     this.platform_fees_accrued.value = new Uint64(0);
+    this.rewards_exhausted.value = new Uint64(0);
+    this.rewards_paid.value = new Uint64(0);
 
     assertMatch(initialBalanceTxn, {
       receiver: Global.currentApplicationAddress,
@@ -131,6 +134,23 @@ export class Staking extends Contract {
       xferAsset: Asset(this.reward_asset_id.value.asUint64()),
       assetAmount: rewardAmount,
     });
+    this.rewards_exhausted.value = new Uint64(0);
+  }
+
+  @abimethod({ allowActions: "NoOp" })
+  fundMoreRewards(rewardFundingTxn: gtxn.AssetTransferTxn, rewardAmount: uint64): void {
+    assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
+    assert(rewardAmount > 0, "Invalid reward amount");
+
+    assertMatch(rewardFundingTxn, {
+      sender: this.admin_address.value,
+      assetReceiver: Global.currentApplicationAddress,
+      xferAsset: Asset(this.reward_asset_id.value.asUint64()),
+      assetAmount: rewardAmount,
+    });
+
+    this.total_rewards.value = new Uint64(this.total_rewards.value.asUint64() + rewardAmount);
+    this.rewards_exhausted.value = new Uint64(0);
   }
 
   @abimethod({ allowActions: "NoOp" })
@@ -147,6 +167,7 @@ export class Staking extends Contract {
       assetAmount: available,
       fee: 0,
     }).submit();
+    this.rewards_exhausted.value = new Uint64(1);
   }
 
   @abimethod({ allowActions: "NoOp" })
@@ -219,7 +240,11 @@ export class Staking extends Contract {
     assert(amount === stakeNow, "Amount mismatch");
 
     const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
-    const pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    if (pending > payable) {
+      pending = payable;
+    }
 
     if (pending > 0) {
       const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
@@ -227,6 +252,7 @@ export class Staking extends Contract {
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
       }
+      this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
       itxn
         .assetTransfer({
           xferAsset: this.reward_asset_id.value.asUint64(),
@@ -268,7 +294,6 @@ export class Staking extends Contract {
     }
 
     const now: uint64 = Global.latestTimestamp;
-    const end: uint64 = this.end_time.value.asUint64();
     const start: uint64 = this.start_time.value.asUint64();
     const last: uint64 = this.last_update_time.value.asUint64();
 
@@ -276,7 +301,12 @@ export class Staking extends Contract {
       return;
     }
 
-    const cappedTime: uint64 = now < end ? now : end;
+    if (this.rewards_exhausted.value.asUint64() === 1) {
+      this.last_update_time.value = new Uint64(now);
+      return;
+    }
+
+    const cappedTime: uint64 = now;
     if (cappedTime <= start) {
       this.last_update_time.value = new Uint64(cappedTime);
       return;
@@ -304,6 +334,9 @@ export class Staking extends Contract {
       reward = remaining;
     }
     if (reward === 0) {
+      if (remaining === 0) {
+        this.rewards_exhausted.value = new Uint64(1);
+      }
       this.last_update_time.value = new Uint64(cappedTime);
       return;
     }
@@ -312,13 +345,16 @@ export class Staking extends Contract {
     const deltaRPT = mulDivW(reward, PRECISION, this.total_staked.value.asUint64());
     this.reward_per_token.value = new Uint64(this.reward_per_token.value.asUint64() + deltaRPT);
     this.last_update_time.value = new Uint64(cappedTime);
+    if (this.accrued_rewards.value.asUint64() === this.total_rewards.value.asUint64()) {
+      this.rewards_exhausted.value = new Uint64(1);
+    }
   }
 
   @abimethod({ allowActions: "NoOp" })
   stake(stakeTxn: gtxn.AssetTransferTxn, quantity: uint64, mbrTxn: gtxn.PaymentTxn): void {
     assert(quantity > 0, "Invalid quantity");
     assert(this.contract_state.value.asUint64() === 1, "Pool is inactive");
-    assert(Global.latestTimestamp < this.end_time.value.asUint64(), "Pool ended");
+    assert(this.rewards_exhausted.value.asUint64() === 0, "Rewards exhausted");
     assertMatch(stakeTxn, {
       sender: op.Txn.sender,
       assetReceiver: Global.currentApplicationAddress,
@@ -350,7 +386,11 @@ export class Staking extends Contract {
     const prevStake: uint64 = exists ? this.stakers(op.Txn.sender).value.stake.asUint64() : 0;
     const prevDebt: uint64 = exists ? this.stakers(op.Txn.sender).value.rewardDebt.asUint64() : 0;
     const accrued = mulDivW(prevStake, this.reward_per_token.value.asUint64(), PRECISION);
-    const pending: uint64 = accrued > prevDebt ? accrued - prevDebt : 0;
+    let pending: uint64 = accrued > prevDebt ? accrued - prevDebt : 0;
+    const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    if (pending > payable) {
+      pending = payable;
+    }
 
     if (pending > 0) {
       const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
@@ -358,6 +398,7 @@ export class Staking extends Contract {
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
       }
+      this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
       itxn
         .assetTransfer({
           xferAsset: this.reward_asset_id.value.asUint64(),
@@ -393,7 +434,11 @@ export class Staking extends Contract {
     this.updatePool();
 
     const accrued = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
-    const pending: uint64 = accrued > staker.rewardDebt.asUint64() ? accrued - staker.rewardDebt.asUint64() : 0;
+    let pending: uint64 = accrued > staker.rewardDebt.asUint64() ? accrued - staker.rewardDebt.asUint64() : 0;
+    const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    if (pending > payable) {
+      pending = payable;
+    }
 
     if (pending > 0) {
       const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
@@ -401,6 +446,7 @@ export class Staking extends Contract {
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
       }
+      this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
       itxn
         .assetTransfer({
           xferAsset: this.reward_asset_id.value.asUint64(),
@@ -432,7 +478,11 @@ export class Staking extends Contract {
     assert(stakeNow >= amountToWithdraw, "Unstake amount exceeds balance");
 
     const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
-    const pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    if (pending > payable) {
+      pending = payable;
+    }
 
     if (pending > 0) {
       const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
@@ -440,6 +490,7 @@ export class Staking extends Contract {
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
       }
+      this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
       itxn
         .assetTransfer({
           xferAsset: this.reward_asset_id.value.asUint64(),

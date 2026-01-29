@@ -65,7 +65,6 @@ describe("staking pools Testing - main flow", () => {
 
   const updatePoolPreview = (state: Awaited<ReturnType<typeof stakingClient.state.global.getAll>>, nowTs: bigint) => {
     const start = state.startTime || 0n;
-    const end = state.endTime || 0n;
     const last = state.lastUpdateTime || 0n;
     const totalStaked = state.totalStaked || 0n;
     const rewardPerToken = state.rewardPerToken || 0n;
@@ -74,7 +73,7 @@ describe("staking pools Testing - main flow", () => {
     const aprBps = state.aprBps || 0n;
     const rewardRate = state.rewardRate || 0n;
 
-    const cappedTime = nowTs < end ? nowTs : end;
+    const cappedTime = nowTs;
     if (cappedTime <= start) {
       return {
         rewardPerToken,
@@ -373,6 +372,9 @@ describe("staking pools Testing - main flow", () => {
       expect(afterClaimState.accruedRewards).toEqual(preview.accruedRewards);
       expect(afterClaimState.rewardPerToken).toEqual(preview.rewardPerToken);
       expect(afterClaimState.lastUpdateTime).toEqual(preview.lastUpdateTime);
+      if (afterClaimState.rewardsPaid !== undefined && globalBefore.rewardsPaid !== undefined) {
+        expect(afterClaimState.rewardsPaid).toEqual(globalBefore.rewardsPaid + expectedPending);
+      }
 
       const rewardAfter = await getAssetBalance(algosdk.encodeAddress(staker.addr.publicKey), rewardAssetId);
       expect(rewardAfter).toBeGreaterThan(rewardBefore);
@@ -725,6 +727,11 @@ describe("staking pools Testing - main flow", () => {
 
       const rewardAfter = await getAssetBalance(stakerAddr, rewardAssetId);
       expect(rewardAfter - rewardBefore).toEqual(expectedNet);
+
+      const afterClaimState = await variedPool.state.global.getAll();
+      if (afterClaimState.rewardsPaid !== undefined && globalBefore.rewardsPaid !== undefined) {
+        expect(afterClaimState.rewardsPaid).toEqual(globalBefore.rewardsPaid + expectedPending);
+      }
 
       const stakeBefore = await getAssetBalance(stakerAddr, stakedAssetId);
       await variedPool.send.unstake({

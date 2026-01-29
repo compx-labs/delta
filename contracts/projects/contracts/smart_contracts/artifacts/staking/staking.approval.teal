@@ -4,7 +4,7 @@
 // @algorandfoundation/algorand-typescript/arc4/index.d.ts::Contract.approvalProgram() -> uint64:
 main:
     intcblock 0 1 8 4 1000000000000000 10000 22500
-    bytecblock 0x0000000000000000 "platform_fees_accrued" "st" "total_staked" "admin_address" "reward_asset_id" "reward_per_token" "contract_state" "last_update_time" "num_stakers" "super_admin_address" "platform_fee_bps" "staked_asset_id" "accrued_rewards" "total_rewards" "master_repo_app" "end_time" "reward_rate" "start_time" "apr_bps" 0x151f7c75
+    bytecblock 0x0000000000000000 "rewards_paid" "platform_fees_accrued" "st" "admin_address" "reward_asset_id" "total_staked" "accrued_rewards" "reward_per_token" "contract_state" "last_update_time" "rewards_exhausted" "total_rewards" "num_stakers" "super_admin_address" "platform_fee_bps" "staked_asset_id" 0x0000000000000001 "master_repo_app" "reward_rate" "start_time" "apr_bps" 0x151f7c75
     // smart_contracts/staking/staking.algo.ts:24-25
     // @contract({ name: "staking", avmVersion: 11 })
     // export class Staking extends Contract {
@@ -20,19 +20,19 @@ main_switch_case_next@3:
     !
     assert // OnCompletion must be NoOp
     txn ApplicationID
-    bz main_create_NoOp@19
-    pushbytess 0x7736a451 0x8264c98e 0x56134411 0xc3bd7ed4 0xda27004a 0xa3fea40f 0x6590467a 0x907df3f6 0x294d37e9 0x7a9ee189 0xa5ae6bd1 0x813ce89a 0x3172ca9d // method "initApplication(uint64,uint64,uint64,uint64,uint64,uint64,pay)void", method "fundRewards(axfer,uint64)void", method "removeRewards()void", method "setContractActive()void", method "setContractInactive()void", method "updateAdminAddress(address)void", method "updateSuperAdminAddress(address)void", method "withdrawPlatformFees(address)void", method "emergencyWithdrawAsset(uint64,uint64,address)void", method "stake(axfer,uint64,pay)void", method "claimRewards()void", method "unstake(uint64)void", method "gas()void"
+    bz main_create_NoOp@20
+    pushbytess 0x7736a451 0x8264c98e 0x71bfff11 0x56134411 0xc3bd7ed4 0xda27004a 0xa3fea40f 0x6590467a 0x907df3f6 0x294d37e9 0x7a9ee189 0xa5ae6bd1 0x813ce89a 0x3172ca9d // method "initApplication(uint64,uint64,uint64,uint64,uint64,uint64,pay)void", method "fundRewards(axfer,uint64)void", method "fundMoreRewards(axfer,uint64)void", method "removeRewards()void", method "setContractActive()void", method "setContractInactive()void", method "updateAdminAddress(address)void", method "updateSuperAdminAddress(address)void", method "withdrawPlatformFees(address)void", method "emergencyWithdrawAsset(uint64,uint64,address)void", method "stake(axfer,uint64,pay)void", method "claimRewards()void", method "unstake(uint64)void", method "gas()void"
     txna ApplicationArgs 0
-    match initApplication fundRewards removeRewards setContractActive setContractInactive updateAdminAddress updateSuperAdminAddress withdrawPlatformFees emergencyWithdrawAsset stake claimRewards unstake main_gas_route@17
+    match initApplication fundRewards fundMoreRewards removeRewards setContractActive setContractInactive updateAdminAddress updateSuperAdminAddress withdrawPlatformFees emergencyWithdrawAsset stake claimRewards unstake main_gas_route@18
     err
 
-main_gas_route@17:
-    // smart_contracts/staking/staking.algo.ts:515
+main_gas_route@18:
+    // smart_contracts/staking/staking.algo.ts:566
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
 
-main_create_NoOp@19:
+main_create_NoOp@20:
     // smart_contracts/staking/staking.algo.ts:24-25
     // @contract({ name: "staking", avmVersion: 11 })
     // export class Staking extends Contract {
@@ -42,7 +42,7 @@ main_create_NoOp@19:
     err
 
 main_deleteApplication_route@2:
-    // smart_contracts/staking/staking.algo.ts:487
+    // smart_contracts/staking/staking.algo.ts:538
     // @abimethod({ allowActions: "DeleteApplication" })
     txn OnCompletion
     pushint 5 // DeleteApplication
@@ -55,7 +55,7 @@ main_deleteApplication_route@2:
 
 // smart_contracts/staking/staking.algo.ts::Staking.createApplication[routing]() -> void:
 createApplication:
-    // smart_contracts/staking/staking.algo.ts:52
+    // smart_contracts/staking/staking.algo.ts:53
     // @abimethod({ allowActions: "NoOp", onCreate: "require" })
     txna ApplicationArgs 1
     dup
@@ -70,48 +70,55 @@ createApplication:
     ==
     assert // invalid number of bytes for arc4.uint64
     btoi
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:54
+    // smart_contracts/staking/staking.algo.ts:55
     // this.admin_address.value = adminAddress.native;
     uncover 2
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:46
+    // smart_contracts/staking/staking.algo.ts:47
     // contract_version = GlobalState<Uint64>();
     pushbytess "contract_version" 0x0000000000000fa0 // "contract_version", 0x0000000000000fa0
-    // smart_contracts/staking/staking.algo.ts:55
+    // smart_contracts/staking/staking.algo.ts:56
     // this.contract_version.value = new Uint64(VERSION);
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:56
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:57
     // this.contract_state.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:48
+    // smart_contracts/staking/staking.algo.ts:49
     // master_repo_app = GlobalState<Application>();
-    bytec 15 // "master_repo_app"
-    // smart_contracts/staking/staking.algo.ts:57
+    bytec 18 // "master_repo_app"
+    // smart_contracts/staking/staking.algo.ts:58
     // this.master_repo_app.value = masterRepoApp;
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:49
+    // smart_contracts/staking/staking.algo.ts:50
     // platform_fee_bps = GlobalState<Uint64>();
-    bytec 11 // "platform_fee_bps"
-    // smart_contracts/staking/staking.algo.ts:58
+    bytec 15 // "platform_fee_bps"
+    // smart_contracts/staking/staking.algo.ts:59
     // this.platform_fee_bps.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:59
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:60
     // this.platform_fees_accrued.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:52
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:61
+    // this.rewards_paid.value = new Uint64(0);
+    bytec_0 // 0x0000000000000000
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:53
     // @abimethod({ allowActions: "NoOp", onCreate: "require" })
     intc_1 // 1
     return
@@ -119,7 +126,7 @@ createApplication:
 
 // smart_contracts/staking/staking.algo.ts::Staking.initApplication[routing]() -> void:
 initApplication:
-    // smart_contracts/staking/staking.algo.ts:62
+    // smart_contracts/staking/staking.algo.ts:64
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dupn 2
@@ -178,157 +185,158 @@ initApplication:
     intc_1 // pay
     ==
     assert // transaction type is pay
-    // smart_contracts/staking/staking.algo.ts:72
+    // smart_contracts/staking/staking.algo.ts:74
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can init application");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:72
+    // smart_contracts/staking/staking.algo.ts:74
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can init application");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only admin can init application
-    // smart_contracts/staking/staking.algo.ts:73
+    // smart_contracts/staking/staking.algo.ts:75
     // assert(rewardAmount > 0, "Invalid reward amount");
     uncover 3
     assert // Invalid reward amount
-    // smart_contracts/staking/staking.algo.ts:74
+    // smart_contracts/staking/staking.algo.ts:76
     // assert(duration > 0, "Invalid duration");
     assert // Invalid duration
-    // smart_contracts/staking/staking.algo.ts:75
+    // smart_contracts/staking/staking.algo.ts:77
     // assert(aprBps > 0, "Invalid APR");
     swap
     assert // Invalid APR
-    // smart_contracts/staking/staking.algo.ts:77
+    // smart_contracts/staking/staking.algo.ts:79
     // const start: uint64 = startTime === 0 ? Global.latestTimestamp : startTime;
     bnz initApplication_ternary_false@3
     global LatestTimestamp
 
 initApplication_ternary_merge@4:
-    // smart_contracts/staking/staking.algo.ts:78
+    // smart_contracts/staking/staking.algo.ts:80
     // const end: uint64 = start + duration;
     dup
     dig 3
     +
-    // smart_contracts/staking/staking.algo.ts:79
+    // smart_contracts/staking/staking.algo.ts:81
     // assert(end > start, "Invalid time range");
-    dup
-    dig 2
+    dig 1
     >
     assert // Invalid time range
     // smart_contracts/staking/staking.algo.ts:28
     // staked_asset_id = GlobalState<Uint64>();
-    bytec 12 // "staked_asset_id"
-    // smart_contracts/staking/staking.algo.ts:81
+    bytec 16 // "staked_asset_id"
+    // smart_contracts/staking/staking.algo.ts:83
     // this.staked_asset_id.value = new Uint64(stakedAssetId);
-    dig 11
+    dig 10
     app_global_put
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:82
+    // smart_contracts/staking/staking.algo.ts:84
     // this.reward_asset_id.value = new Uint64(rewardAssetId);
-    dig 9
+    dig 8
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:39
+    // smart_contracts/staking/staking.algo.ts:38
     // total_rewards = GlobalState<Uint64>();
-    bytec 14 // "total_rewards"
-    // smart_contracts/staking/staking.algo.ts:83
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:85
     // this.total_rewards.value = new Uint64(rewardAmount);
-    dig 7
+    dig 6
     app_global_put
     // smart_contracts/staking/staking.algo.ts:34
     // reward_rate = GlobalState<Uint64>();
-    bytec 17 // "reward_rate"
-    // smart_contracts/staking/staking.algo.ts:84
+    bytec 19 // "reward_rate"
+    // smart_contracts/staking/staking.algo.ts:86
     // this.reward_rate.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:85
+    // smart_contracts/staking/staking.algo.ts:87
     // this.start_time.value = new Uint64(start);
-    swap
     itob
     // smart_contracts/staking/staking.algo.ts:35
     // start_time = GlobalState<Uint64>();
-    bytec 18 // "start_time"
-    // smart_contracts/staking/staking.algo.ts:85
+    bytec 20 // "start_time"
+    // smart_contracts/staking/staking.algo.ts:87
     // this.start_time.value = new Uint64(start);
     dig 1
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:86
-    // this.end_time.value = new Uint64(end);
-    swap
-    itob
     // smart_contracts/staking/staking.algo.ts:36
-    // end_time = GlobalState<Uint64>();
-    bytec 16 // "end_time"
-    // smart_contracts/staking/staking.algo.ts:86
-    // this.end_time.value = new Uint64(end);
-    swap
-    app_global_put
-    // smart_contracts/staking/staking.algo.ts:37
     // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:87
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:88
     // this.last_update_time.value = new Uint64(start);
     swap
     app_global_put
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:88
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:89
     // this.reward_per_token.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:89
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:90
     // this.total_staked.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:90
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:91
     // this.num_stakers.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:40
+    // smart_contracts/staking/staking.algo.ts:39
     // accrued_rewards = GlobalState<Uint64>();
-    bytec 13 // "accrued_rewards"
-    // smart_contracts/staking/staking.algo.ts:91
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:92
     // this.accrued_rewards.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:41
+    // smart_contracts/staking/staking.algo.ts:40
     // apr_bps = GlobalState<Uint64>();
-    bytec 19 // "apr_bps"
-    // smart_contracts/staking/staking.algo.ts:92
+    bytec 21 // "apr_bps"
+    // smart_contracts/staking/staking.algo.ts:93
     // this.apr_bps.value = new Uint64(aprBps);
     dig 4
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:93
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:94
     // this.platform_fees_accrued.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:95-98
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:95
+    // this.rewards_exhausted.value = new Uint64(0);
+    bytec_0 // 0x0000000000000000
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:96
+    // this.rewards_paid.value = new Uint64(0);
+    bytec_0 // 0x0000000000000000
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:98-101
     // assertMatch(initialBalanceTxn, {
     //   receiver: Global.currentApplicationAddress,
     //   amount: INITIAL_PAY_AMOUNT,
     // });
     dupn 2
     gtxns Receiver
-    // smart_contracts/staking/staking.algo.ts:96
+    // smart_contracts/staking/staking.algo.ts:99
     // receiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/staking/staking.algo.ts:95-98
+    // smart_contracts/staking/staking.algo.ts:98-101
     // assertMatch(initialBalanceTxn, {
     //   receiver: Global.currentApplicationAddress,
     //   amount: INITIAL_PAY_AMOUNT,
@@ -336,10 +344,10 @@ initApplication_ternary_merge@4:
     ==
     swap
     gtxns Amount
-    // smart_contracts/staking/staking.algo.ts:97
+    // smart_contracts/staking/staking.algo.ts:100
     // amount: INITIAL_PAY_AMOUNT,
     pushint 400000 // 400000
-    // smart_contracts/staking/staking.algo.ts:95-98
+    // smart_contracts/staking/staking.algo.ts:98-101
     // assertMatch(initialBalanceTxn, {
     //   receiver: Global.currentApplicationAddress,
     //   amount: INITIAL_PAY_AMOUNT,
@@ -347,7 +355,7 @@ initApplication_ternary_merge@4:
     ==
     &&
     assert // assert target is match for conditions
-    // smart_contracts/staking/staking.algo.ts:100-107
+    // smart_contracts/staking/staking.algo.ts:103-110
     // itxn
     //   .assetTransfer({
     //     xferAsset: stakedAssetId,
@@ -357,10 +365,10 @@ initApplication_ternary_merge@4:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:103
+    // smart_contracts/staking/staking.algo.ts:106
     // assetReceiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/staking/staking.algo.ts:104
+    // smart_contracts/staking/staking.algo.ts:107
     // assetAmount: 0,
     intc_0 // 0
     itxn_field AssetAmount
@@ -368,7 +376,7 @@ initApplication_ternary_merge@4:
     dig 7
     dup
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:100-106
+    // smart_contracts/staking/staking.algo.ts:103-109
     // itxn
     //   .assetTransfer({
     //     xferAsset: stakedAssetId,
@@ -378,11 +386,11 @@ initApplication_ternary_merge@4:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:105
+    // smart_contracts/staking/staking.algo.ts:108
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:100-107
+    // smart_contracts/staking/staking.algo.ts:103-110
     // itxn
     //   .assetTransfer({
     //     xferAsset: stakedAssetId,
@@ -392,12 +400,12 @@ initApplication_ternary_merge@4:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:109
+    // smart_contracts/staking/staking.algo.ts:112
     // if (rewardAssetId !== stakedAssetId) {
     dig 6
     !=
     bz initApplication_after_if_else@8
-    // smart_contracts/staking/staking.algo.ts:110-117
+    // smart_contracts/staking/staking.algo.ts:113-120
     // itxn
     //   .assetTransfer({
     //     xferAsset: rewardAssetId,
@@ -407,17 +415,17 @@ initApplication_ternary_merge@4:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:113
+    // smart_contracts/staking/staking.algo.ts:116
     // assetReceiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/staking/staking.algo.ts:114
+    // smart_contracts/staking/staking.algo.ts:117
     // assetAmount: 0,
     intc_0 // 0
     itxn_field AssetAmount
     itxn_field AssetReceiver
     dig 5
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:110-116
+    // smart_contracts/staking/staking.algo.ts:113-119
     // itxn
     //   .assetTransfer({
     //     xferAsset: rewardAssetId,
@@ -427,11 +435,11 @@ initApplication_ternary_merge@4:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:115
+    // smart_contracts/staking/staking.algo.ts:118
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:110-117
+    // smart_contracts/staking/staking.algo.ts:113-120
     // itxn
     //   .assetTransfer({
     //     xferAsset: rewardAssetId,
@@ -443,7 +451,7 @@ initApplication_ternary_merge@4:
     itxn_submit
 
 initApplication_after_if_else@8:
-    // smart_contracts/staking/staking.algo.ts:62
+    // smart_contracts/staking/staking.algo.ts:64
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -455,7 +463,7 @@ initApplication_ternary_false@3:
 
 // smart_contracts/staking/staking.algo.ts::Staking.fundRewards[routing]() -> void:
 fundRewards:
-    // smart_contracts/staking/staking.algo.ts:121
+    // smart_contracts/staking/staking.algo.ts:124
     // @abimethod({ allowActions: "NoOp" })
     txn GroupIndex
     intc_1 // 1
@@ -472,14 +480,14 @@ fundRewards:
     ==
     assert // invalid number of bytes for arc4.uint64
     btoi
-    // smart_contracts/staking/staking.algo.ts:123
+    // smart_contracts/staking/staking.algo.ts:126
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:123
+    // smart_contracts/staking/staking.algo.ts:126
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
     app_global_get_ex
     assert // check GlobalState exists
@@ -487,39 +495,39 @@ fundRewards:
     dig 1
     ==
     assert // Only admin can fund rewards
-    // smart_contracts/staking/staking.algo.ts:124
+    // smart_contracts/staking/staking.algo.ts:127
     // assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:124
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:127
     // assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
     app_global_get_ex
     assert // check GlobalState exists
     bytec_0 // 0x0000000000000000
     ==
     assert // Pool must be inactive
-    // smart_contracts/staking/staking.algo.ts:125
+    // smart_contracts/staking/staking.algo.ts:128
     // assert(this.accrued_rewards.value.asUint64() === 0, "Rewards already started");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:40
+    // smart_contracts/staking/staking.algo.ts:39
     // accrued_rewards = GlobalState<Uint64>();
-    bytec 13 // "accrued_rewards"
-    // smart_contracts/staking/staking.algo.ts:125
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:128
     // assert(this.accrued_rewards.value.asUint64() === 0, "Rewards already started");
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     !
     assert // Rewards already started
-    // smart_contracts/staking/staking.algo.ts:126
+    // smart_contracts/staking/staking.algo.ts:129
     // assert(rewardAmount === this.total_rewards.value.asUint64(), "Reward amount mismatch");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:39
+    // smart_contracts/staking/staking.algo.ts:38
     // total_rewards = GlobalState<Uint64>();
-    bytec 14 // "total_rewards"
-    // smart_contracts/staking/staking.algo.ts:126
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:129
     // assert(rewardAmount === this.total_rewards.value.asUint64(), "Reward amount mismatch");
     app_global_get_ex
     assert // check GlobalState exists
@@ -527,7 +535,7 @@ fundRewards:
     dig 2
     ==
     assert // Reward amount mismatch
-    // smart_contracts/staking/staking.algo.ts:128-133
+    // smart_contracts/staking/staking.algo.ts:131-136
     // assertMatch(rewardFundingTxn, {
     //   sender: this.admin_address.value,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -539,10 +547,10 @@ fundRewards:
     ==
     dig 2
     gtxns AssetReceiver
-    // smart_contracts/staking/staking.algo.ts:130
+    // smart_contracts/staking/staking.algo.ts:133
     // assetReceiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/staking/staking.algo.ts:128-133
+    // smart_contracts/staking/staking.algo.ts:131-136
     // assertMatch(rewardFundingTxn, {
     //   sender: this.admin_address.value,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -553,18 +561,18 @@ fundRewards:
     &&
     dig 2
     gtxns XferAsset
-    // smart_contracts/staking/staking.algo.ts:131
+    // smart_contracts/staking/staking.algo.ts:134
     // xferAsset: Asset(this.reward_asset_id.value.asUint64()),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:131
+    // smart_contracts/staking/staking.algo.ts:134
     // xferAsset: Asset(this.reward_asset_id.value.asUint64()),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:128-133
+    // smart_contracts/staking/staking.algo.ts:131-136
     // assertMatch(rewardFundingTxn, {
     //   sender: this.admin_address.value,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -579,22 +587,46 @@ fundRewards:
     ==
     &&
     assert // assert target is match for conditions
-    // smart_contracts/staking/staking.algo.ts:121
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:137
+    // this.rewards_exhausted.value = new Uint64(0);
+    bytec_0 // 0x0000000000000000
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:124
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
 
 
-// smart_contracts/staking/staking.algo.ts::Staking.removeRewards[routing]() -> void:
-removeRewards:
-    // smart_contracts/staking/staking.algo.ts:138
+// smart_contracts/staking/staking.algo.ts::Staking.fundMoreRewards[routing]() -> void:
+fundMoreRewards:
+    // smart_contracts/staking/staking.algo.ts:140
+    // @abimethod({ allowActions: "NoOp" })
+    txn GroupIndex
+    intc_1 // 1
+    -
+    dup
+    gtxns TypeEnum
+    intc_3 // axfer
+    ==
+    assert // transaction type is axfer
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // smart_contracts/staking/staking.algo.ts:142
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:138
+    // smart_contracts/staking/staking.algo.ts:142
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
     app_global_get_ex
     assert // check GlobalState exists
@@ -602,45 +634,151 @@ removeRewards:
     dig 1
     ==
     assert // Only admin can fund rewards
-    // smart_contracts/staking/staking.algo.ts:139
+    // smart_contracts/staking/staking.algo.ts:143
+    // assert(rewardAmount > 0, "Invalid reward amount");
+    dig 1
+    assert // Invalid reward amount
+    // smart_contracts/staking/staking.algo.ts:145-150
+    // assertMatch(rewardFundingTxn, {
+    //   sender: this.admin_address.value,
+    //   assetReceiver: Global.currentApplicationAddress,
+    //   xferAsset: Asset(this.reward_asset_id.value.asUint64()),
+    //   assetAmount: rewardAmount,
+    // });
+    dig 2
+    gtxns Sender
+    ==
+    dig 2
+    gtxns AssetReceiver
+    // smart_contracts/staking/staking.algo.ts:147
+    // assetReceiver: Global.currentApplicationAddress,
+    global CurrentApplicationAddress
+    // smart_contracts/staking/staking.algo.ts:145-150
+    // assertMatch(rewardFundingTxn, {
+    //   sender: this.admin_address.value,
+    //   assetReceiver: Global.currentApplicationAddress,
+    //   xferAsset: Asset(this.reward_asset_id.value.asUint64()),
+    //   assetAmount: rewardAmount,
+    // });
+    ==
+    &&
+    dig 2
+    gtxns XferAsset
+    // smart_contracts/staking/staking.algo.ts:148
+    // xferAsset: Asset(this.reward_asset_id.value.asUint64()),
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:29
+    // reward_asset_id = GlobalState<Uint64>();
+    bytec 5 // "reward_asset_id"
+    // smart_contracts/staking/staking.algo.ts:148
+    // xferAsset: Asset(this.reward_asset_id.value.asUint64()),
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    // smart_contracts/staking/staking.algo.ts:145-150
+    // assertMatch(rewardFundingTxn, {
+    //   sender: this.admin_address.value,
+    //   assetReceiver: Global.currentApplicationAddress,
+    //   xferAsset: Asset(this.reward_asset_id.value.asUint64()),
+    //   assetAmount: rewardAmount,
+    // });
+    ==
+    &&
+    uncover 2
+    gtxns AssetAmount
+    dig 2
+    ==
+    &&
+    assert // assert target is match for conditions
+    // smart_contracts/staking/staking.algo.ts:152
+    // this.total_rewards.value = new Uint64(this.total_rewards.value.asUint64() + rewardAmount);
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:38
+    // total_rewards = GlobalState<Uint64>();
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:152
+    // this.total_rewards.value = new Uint64(this.total_rewards.value.asUint64() + rewardAmount);
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    +
+    itob
+    // smart_contracts/staking/staking.algo.ts:38
+    // total_rewards = GlobalState<Uint64>();
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:152
+    // this.total_rewards.value = new Uint64(this.total_rewards.value.asUint64() + rewardAmount);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:153
+    // this.rewards_exhausted.value = new Uint64(0);
+    bytec_0 // 0x0000000000000000
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:140
+    // @abimethod({ allowActions: "NoOp" })
+    intc_1 // 1
+    return
+
+
+// smart_contracts/staking/staking.algo.ts::Staking.removeRewards[routing]() -> void:
+removeRewards:
+    // smart_contracts/staking/staking.algo.ts:158
+    // assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
+    txn Sender
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:44
+    // admin_address = GlobalState<Account>();
+    bytec 4 // "admin_address"
+    // smart_contracts/staking/staking.algo.ts:158
+    // assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
+    app_global_get_ex
+    assert // check GlobalState exists
+    swap
+    dig 1
+    ==
+    assert // Only admin can fund rewards
+    // smart_contracts/staking/staking.algo.ts:159
     // assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:139
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:159
     // assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
     app_global_get_ex
     assert // check GlobalState exists
     bytec_0 // 0x0000000000000000
     ==
     assert // Pool must be inactive
-    // smart_contracts/staking/staking.algo.ts:141
+    // smart_contracts/staking/staking.algo.ts:161
     // const available: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:39
+    // smart_contracts/staking/staking.algo.ts:38
     // total_rewards = GlobalState<Uint64>();
-    bytec 14 // "total_rewards"
-    // smart_contracts/staking/staking.algo.ts:141
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:161
     // const available: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:40
+    // smart_contracts/staking/staking.algo.ts:39
     // accrued_rewards = GlobalState<Uint64>();
-    bytec 13 // "accrued_rewards"
-    // smart_contracts/staking/staking.algo.ts:141
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:161
     // const available: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     -
-    // smart_contracts/staking/staking.algo.ts:142
+    // smart_contracts/staking/staking.algo.ts:162
     // assert(available > 0, "No rewards to remove");
     dup
     assert // No rewards to remove
-    // smart_contracts/staking/staking.algo.ts:143-149
+    // smart_contracts/staking/staking.algo.ts:163-169
     // itxn.assetTransfer({
     //   xferAsset: this.reward_asset_id.value.asUint64(),
     //   assetReceiver: this.admin_address.value,
@@ -649,18 +787,18 @@ removeRewards:
     //   fee: 0,
     // }).submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:144
+    // smart_contracts/staking/staking.algo.ts:164
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:144
+    // smart_contracts/staking/staking.algo.ts:164
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:146
+    // smart_contracts/staking/staking.algo.ts:166
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     uncover 2
@@ -668,7 +806,7 @@ removeRewards:
     itxn_field Sender
     itxn_field XferAsset
     itxn_field AssetReceiver
-    // smart_contracts/staking/staking.algo.ts:143-149
+    // smart_contracts/staking/staking.algo.ts:163-169
     // itxn.assetTransfer({
     //   xferAsset: this.reward_asset_id.value.asUint64(),
     //   assetReceiver: this.admin_address.value,
@@ -678,11 +816,11 @@ removeRewards:
     // }).submit();
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:148
+    // smart_contracts/staking/staking.algo.ts:168
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:143-149
+    // smart_contracts/staking/staking.algo.ts:163-169
     // itxn.assetTransfer({
     //   xferAsset: this.reward_asset_id.value.asUint64(),
     //   assetReceiver: this.admin_address.value,
@@ -691,7 +829,14 @@ removeRewards:
     //   fee: 0,
     // }).submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:136
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:170
+    // this.rewards_exhausted.value = new Uint64(1);
+    bytec 17 // 0x0000000000000001
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:156
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -699,20 +844,20 @@ removeRewards:
 
 // smart_contracts/staking/staking.algo.ts::Staking.setContractActive[routing]() -> void:
 setContractActive:
-    // smart_contracts/staking/staking.algo.ts:154
+    // smart_contracts/staking/staking.algo.ts:175
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can set active");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:154
+    // smart_contracts/staking/staking.algo.ts:175
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can set active");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only admin can set active
-    // smart_contracts/staking/staking.algo.ts:155-160
+    // smart_contracts/staking/staking.algo.ts:176-181
     // const superAdminResult = abiCall({
     //   appId: this.master_repo_app.value,
     //   method: MasterRepoStub.prototype.getSuperAdminAddress,
@@ -720,17 +865,17 @@ setContractActive:
     //   fee: 0,
     // }).returnValue;
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:156
+    // smart_contracts/staking/staking.algo.ts:177
     // appId: this.master_repo_app.value,
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:48
+    // smart_contracts/staking/staking.algo.ts:49
     // master_repo_app = GlobalState<Application>();
-    bytec 15 // "master_repo_app"
-    // smart_contracts/staking/staking.algo.ts:156
+    bytec 18 // "master_repo_app"
+    // smart_contracts/staking/staking.algo.ts:177
     // appId: this.master_repo_app.value,
     app_global_get_ex
     assert // check GlobalState exists
-    // smart_contracts/staking/staking.algo.ts:155-160
+    // smart_contracts/staking/staking.algo.ts:176-181
     // const superAdminResult = abiCall({
     //   appId: this.master_repo_app.value,
     //   method: MasterRepoStub.prototype.getSuperAdminAddress,
@@ -742,11 +887,11 @@ setContractActive:
     itxn_field ApplicationID
     pushint 6 // appl
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:159
+    // smart_contracts/staking/staking.algo.ts:180
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:155-160
+    // smart_contracts/staking/staking.algo.ts:176-181
     // const superAdminResult = abiCall({
     //   appId: this.master_repo_app.value,
     //   method: MasterRepoStub.prototype.getSuperAdminAddress,
@@ -759,7 +904,7 @@ setContractActive:
     extract 4 0
     swap
     extract 0 4
-    bytec 20 // 0x151f7c75
+    bytec 22 // 0x151f7c75
     ==
     assert // Bytes has valid prefix
     dup
@@ -767,14 +912,14 @@ setContractActive:
     pushint 32 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:161
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:182
     // this.super_admin_address.value = superAdminResult;
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:163-168
+    // smart_contracts/staking/staking.algo.ts:184-189
     // const platformFeeResult = abiCall({
     //   appId: this.master_repo_app.value,
     //   method: MasterRepoStub.prototype.getPlatformFeeBps,
@@ -782,17 +927,17 @@ setContractActive:
     //   fee: 0,
     // }).returnValue;
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:164
+    // smart_contracts/staking/staking.algo.ts:185
     // appId: this.master_repo_app.value,
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:48
+    // smart_contracts/staking/staking.algo.ts:49
     // master_repo_app = GlobalState<Application>();
-    bytec 15 // "master_repo_app"
-    // smart_contracts/staking/staking.algo.ts:164
+    bytec 18 // "master_repo_app"
+    // smart_contracts/staking/staking.algo.ts:185
     // appId: this.master_repo_app.value,
     app_global_get_ex
     assert // check GlobalState exists
-    // smart_contracts/staking/staking.algo.ts:163-168
+    // smart_contracts/staking/staking.algo.ts:184-189
     // const platformFeeResult = abiCall({
     //   appId: this.master_repo_app.value,
     //   method: MasterRepoStub.prototype.getPlatformFeeBps,
@@ -804,11 +949,11 @@ setContractActive:
     itxn_field ApplicationID
     pushint 6 // appl
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:167
+    // smart_contracts/staking/staking.algo.ts:188
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:163-168
+    // smart_contracts/staking/staking.algo.ts:184-189
     // const platformFeeResult = abiCall({
     //   appId: this.master_repo_app.value,
     //   method: MasterRepoStub.prototype.getPlatformFeeBps,
@@ -821,7 +966,7 @@ setContractActive:
     extract 4 0
     swap
     extract 0 4
-    bytec 20 // 0x151f7c75
+    bytec 22 // 0x151f7c75
     ==
     assert // Bytes has valid prefix
     dup
@@ -829,21 +974,21 @@ setContractActive:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/staking/staking.algo.ts:49
+    // smart_contracts/staking/staking.algo.ts:50
     // platform_fee_bps = GlobalState<Uint64>();
-    bytec 11 // "platform_fee_bps"
-    // smart_contracts/staking/staking.algo.ts:169
+    bytec 15 // "platform_fee_bps"
+    // smart_contracts/staking/staking.algo.ts:190
     // this.platform_fee_bps.value = platformFeeResult;
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:170
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:191
     // this.contract_state.value = new Uint64(1);
-    pushbytes 0x0000000000000001
+    bytec 17 // 0x0000000000000001
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:152
+    // smart_contracts/staking/staking.algo.ts:173
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -851,14 +996,14 @@ setContractActive:
 
 // smart_contracts/staking/staking.algo.ts::Staking.setContractInactive[routing]() -> void:
 setContractInactive:
-    // smart_contracts/staking/staking.algo.ts:175
+    // smart_contracts/staking/staking.algo.ts:196
     // assert(op.Txn.sender === this.admin_address.value || op.Txn.sender === this.super_admin_address.value, "Only admin can set inactive");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:175
+    // smart_contracts/staking/staking.algo.ts:196
     // assert(op.Txn.sender === this.admin_address.value || op.Txn.sender === this.super_admin_address.value, "Only admin can set inactive");
     app_global_get_ex
     assert // check GlobalState exists
@@ -866,10 +1011,10 @@ setContractInactive:
     bnz setContractInactive_bool_true@3
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:175
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:196
     // assert(op.Txn.sender === this.admin_address.value || op.Txn.sender === this.super_admin_address.value, "Only admin can set inactive");
     app_global_get_ex
     assert // check GlobalState exists
@@ -880,17 +1025,17 @@ setContractInactive_bool_true@3:
     intc_1 // 1
 
 setContractInactive_bool_merge@5:
-    // smart_contracts/staking/staking.algo.ts:175
+    // smart_contracts/staking/staking.algo.ts:196
     // assert(op.Txn.sender === this.admin_address.value || op.Txn.sender === this.super_admin_address.value, "Only admin can set inactive");
     assert // Only admin can set inactive
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:176
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:197
     // this.contract_state.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:173
+    // smart_contracts/staking/staking.algo.ts:194
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -902,7 +1047,7 @@ setContractInactive_bool_false@4:
 
 // smart_contracts/staking/staking.algo.ts::Staking.updateAdminAddress[routing]() -> void:
 updateAdminAddress:
-    // smart_contracts/staking/staking.algo.ts:179
+    // smart_contracts/staking/staking.algo.ts:200
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -910,27 +1055,27 @@ updateAdminAddress:
     pushint 32 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/staking/staking.algo.ts:181
+    // smart_contracts/staking/staking.algo.ts:202
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can update admin address");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:181
+    // smart_contracts/staking/staking.algo.ts:202
     // assert(op.Txn.sender === this.admin_address.value, "Only admin can update admin address");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only admin can update admin address
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:182
+    // smart_contracts/staking/staking.algo.ts:203
     // this.admin_address.value = adminAddress;
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:179
+    // smart_contracts/staking/staking.algo.ts:200
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -938,7 +1083,7 @@ updateAdminAddress:
 
 // smart_contracts/staking/staking.algo.ts::Staking.updateSuperAdminAddress[routing]() -> void:
 updateSuperAdminAddress:
-    // smart_contracts/staking/staking.algo.ts:185
+    // smart_contracts/staking/staking.algo.ts:206
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -946,27 +1091,27 @@ updateSuperAdminAddress:
     pushint 32 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/staking/staking.algo.ts:187
+    // smart_contracts/staking/staking.algo.ts:208
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can update super admin address");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:187
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:208
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can update super admin address");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only super admin can update super admin address
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:188
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:209
     // this.super_admin_address.value = superAdminAddress;
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:185
+    // smart_contracts/staking/staking.algo.ts:206
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -974,7 +1119,7 @@ updateSuperAdminAddress:
 
 // smart_contracts/staking/staking.algo.ts::Staking.withdrawPlatformFees[routing]() -> void:
 withdrawPlatformFees:
-    // smart_contracts/staking/staking.algo.ts:191
+    // smart_contracts/staking/staking.algo.ts:212
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -982,42 +1127,42 @@ withdrawPlatformFees:
     pushint 32 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/staking/staking.algo.ts:193
+    // smart_contracts/staking/staking.algo.ts:214
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can withdraw fees");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:193
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:214
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can withdraw fees");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only super admin can withdraw fees
-    // smart_contracts/staking/staking.algo.ts:194
+    // smart_contracts/staking/staking.algo.ts:215
     // const accrued: uint64 = this.platform_fees_accrued.value.asUint64();
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:194
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:215
     // const accrued: uint64 = this.platform_fees_accrued.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:195
+    // smart_contracts/staking/staking.algo.ts:216
     // assert(accrued > 0, "No fees accrued");
     dup
     assert // No fees accrued
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:197
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:218
     // this.platform_fees_accrued.value = new Uint64(0);
     bytec_0 // 0x0000000000000000
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:198-206
+    // smart_contracts/staking/staking.algo.ts:219-227
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1028,18 +1173,18 @@ withdrawPlatformFees:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:200
+    // smart_contracts/staking/staking.algo.ts:221
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:200
+    // smart_contracts/staking/staking.algo.ts:221
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:202
+    // smart_contracts/staking/staking.algo.ts:223
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     uncover 2
@@ -1047,7 +1192,7 @@ withdrawPlatformFees:
     itxn_field Sender
     itxn_field XferAsset
     itxn_field AssetReceiver
-    // smart_contracts/staking/staking.algo.ts:198-205
+    // smart_contracts/staking/staking.algo.ts:219-226
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1058,11 +1203,11 @@ withdrawPlatformFees:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:204
+    // smart_contracts/staking/staking.algo.ts:225
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:198-206
+    // smart_contracts/staking/staking.algo.ts:219-227
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1073,7 +1218,7 @@ withdrawPlatformFees:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:191
+    // smart_contracts/staking/staking.algo.ts:212
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
@@ -1082,8 +1227,8 @@ withdrawPlatformFees:
 // smart_contracts/staking/staking.algo.ts::Staking.emergencyWithdrawAsset[routing]() -> void:
 emergencyWithdrawAsset:
     pushbytes ""
-    dupn 2
-    // smart_contracts/staking/staking.algo.ts:209
+    dupn 3
+    // smart_contracts/staking/staking.algo.ts:230
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -1107,26 +1252,26 @@ emergencyWithdrawAsset:
     pushint 32 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/staking/staking.algo.ts:211
+    // smart_contracts/staking/staking.algo.ts:232
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can withdraw");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:211
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:232
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can withdraw");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only super admin can withdraw
-    // smart_contracts/staking/staking.algo.ts:212
+    // smart_contracts/staking/staking.algo.ts:233
     // assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:212
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:233
     // assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
     app_global_get_ex
     assert // check GlobalState exists
@@ -1135,39 +1280,39 @@ emergencyWithdrawAsset:
     assert // Pool must be inactive
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
+    bytec_3 // "st"
     swap
     concat
     dup
     cover 3
-    // smart_contracts/staking/staking.algo.ts:213
+    // smart_contracts/staking/staking.algo.ts:234
     // assert(this.stakers(receiver).exists, "No stake found for user");
     dup
     box_len
     bury 1
     assert // No stake found for user
-    // smart_contracts/staking/staking.algo.ts:215
+    // smart_contracts/staking/staking.algo.ts:236
     // const rec = clone(this.stakers(receiver).value);
     box_get
     pop
-    // smart_contracts/staking/staking.algo.ts:216
+    // smart_contracts/staking/staking.algo.ts:237
     // const stakeNow: uint64 = rec.stake.asUint64();
     dup
     intc_0 // 0
     extract_uint64
     dup
     cover 4
-    // smart_contracts/staking/staking.algo.ts:217
+    // smart_contracts/staking/staking.algo.ts:238
     // assert(stakeNow > 0, "No stake");
     dup
     assert // No stake
-    // smart_contracts/staking/staking.algo.ts:218
+    // smart_contracts/staking/staking.algo.ts:239
     // assert(assetId === this.staked_asset_id.value.asUint64(), "Invalid asset");
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:28
     // staked_asset_id = GlobalState<Uint64>();
-    bytec 12 // "staked_asset_id"
-    // smart_contracts/staking/staking.algo.ts:218
+    bytec 16 // "staked_asset_id"
+    // smart_contracts/staking/staking.algo.ts:239
     // assert(assetId === this.staked_asset_id.value.asUint64(), "Invalid asset");
     app_global_get_ex
     assert // check GlobalState exists
@@ -1175,19 +1320,19 @@ emergencyWithdrawAsset:
     uncover 4
     ==
     assert // Invalid asset
-    // smart_contracts/staking/staking.algo.ts:219
+    // smart_contracts/staking/staking.algo.ts:240
     // assert(amount === stakeNow, "Amount mismatch");
     uncover 2
     dig 1
     ==
     assert // Amount mismatch
-    // smart_contracts/staking/staking.algo.ts:221
+    // smart_contracts/staking/staking.algo.ts:242
     // const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:221
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:242
     // const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1195,7 +1340,7 @@ emergencyWithdrawAsset:
     // smart_contracts/staking/config.algo.ts:28
     // const [hi, lo] = mulw(a, b);
     mulw
-    // smart_contracts/staking/staking.algo.ts:221
+    // smart_contracts/staking/staking.algo.ts:242
     // const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
@@ -1203,8 +1348,8 @@ emergencyWithdrawAsset:
     divw
     dup
     uncover 2
-    // smart_contracts/staking/staking.algo.ts:222
-    // const pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    // smart_contracts/staking/staking.algo.ts:243
+    // let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
     intc_2 // 8
     extract_uint64
     dup
@@ -1216,17 +1361,49 @@ emergencyWithdrawAsset:
     bury 6
 
 emergencyWithdrawAsset_ternary_merge@4:
-    // smart_contracts/staking/staking.algo.ts:224
+    // smart_contracts/staking/staking.algo.ts:244
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:39
+    // accrued_rewards = GlobalState<Uint64>();
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:244
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:244
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    -
+    dup
+    bury 8
+    // smart_contracts/staking/staking.algo.ts:245
+    // if (pending > payable) {
+    dig 6
+    <
+    bz emergencyWithdrawAsset_after_if_else@6
+    dig 6
+    bury 6
+
+emergencyWithdrawAsset_after_if_else@6:
+    // smart_contracts/staking/staking.algo.ts:249
     // if (pending > 0) {
     dig 5
-    bz emergencyWithdrawAsset_after_if_else@9
-    // smart_contracts/staking/staking.algo.ts:225
+    bz emergencyWithdrawAsset_after_if_else@11
+    // smart_contracts/staking/staking.algo.ts:250
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:49
+    // smart_contracts/staking/staking.algo.ts:50
     // platform_fee_bps = GlobalState<Uint64>();
-    bytec 11 // "platform_fee_bps"
-    // smart_contracts/staking/staking.algo.ts:225
+    bytec 15 // "platform_fee_bps"
+    // smart_contracts/staking/staking.algo.ts:250
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1237,47 +1414,68 @@ emergencyWithdrawAsset_ternary_merge@4:
     dup
     uncover 2
     mulw
-    // smart_contracts/staking/staking.algo.ts:225
+    // smart_contracts/staking/staking.algo.ts:250
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc 5 // 10000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
     dup
-    bury 10
-    // smart_contracts/staking/staking.algo.ts:226
+    bury 11
+    // smart_contracts/staking/staking.algo.ts:251
     // const net: uint64 = pending - fee;
     swap
     dig 1
     -
-    bury 8
-    // smart_contracts/staking/staking.algo.ts:227
+    bury 9
+    // smart_contracts/staking/staking.algo.ts:252
     // if (fee > 0) {
-    bz emergencyWithdrawAsset_after_if_else@7
-    // smart_contracts/staking/staking.algo.ts:228
+    bz emergencyWithdrawAsset_after_if_else@9
+    // smart_contracts/staking/staking.algo.ts:253
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:228
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:253
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    dig 8
+    dig 9
     +
     itob
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:228
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:253
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     swap
     app_global_put
 
-emergencyWithdrawAsset_after_if_else@7:
-    // smart_contracts/staking/staking.algo.ts:230-238
+emergencyWithdrawAsset_after_if_else@9:
+    // smart_contracts/staking/staking.algo.ts:255
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:255
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    dig 6
+    +
+    itob
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:255
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:256-264
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1288,27 +1486,27 @@ emergencyWithdrawAsset_after_if_else@7:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:232
+    // smart_contracts/staking/staking.algo.ts:258
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:232
+    // smart_contracts/staking/staking.algo.ts:258
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:234
+    // smart_contracts/staking/staking.algo.ts:260
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    dig 8
+    dig 9
     itxn_field AssetAmount
     itxn_field Sender
     dig 5
     itxn_field AssetReceiver
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:230-237
+    // smart_contracts/staking/staking.algo.ts:256-263
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1319,11 +1517,11 @@ emergencyWithdrawAsset_after_if_else@7:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:236
+    // smart_contracts/staking/staking.algo.ts:262
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:230-238
+    // smart_contracts/staking/staking.algo.ts:256-264
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1335,8 +1533,8 @@ emergencyWithdrawAsset_after_if_else@7:
     //   .submit();
     itxn_submit
 
-emergencyWithdrawAsset_after_if_else@9:
-    // smart_contracts/staking/staking.algo.ts:241-249
+emergencyWithdrawAsset_after_if_else@11:
+    // smart_contracts/staking/staking.algo.ts:267-275
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -1347,18 +1545,18 @@ emergencyWithdrawAsset_after_if_else@9:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:243
+    // smart_contracts/staking/staking.algo.ts:269
     // xferAsset: this.staked_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:28
     // staked_asset_id = GlobalState<Uint64>();
-    bytec 12 // "staked_asset_id"
-    // smart_contracts/staking/staking.algo.ts:243
+    bytec 16 // "staked_asset_id"
+    // smart_contracts/staking/staking.algo.ts:269
     // xferAsset: this.staked_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:245
+    // smart_contracts/staking/staking.algo.ts:271
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     dig 4
@@ -1371,7 +1569,7 @@ emergencyWithdrawAsset_after_if_else@9:
     cover 3
     itxn_field AssetReceiver
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:241-248
+    // smart_contracts/staking/staking.algo.ts:267-274
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -1382,11 +1580,11 @@ emergencyWithdrawAsset_after_if_else@9:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:247
+    // smart_contracts/staking/staking.algo.ts:273
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:241-249
+    // smart_contracts/staking/staking.algo.ts:267-275
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -1397,13 +1595,13 @@ emergencyWithdrawAsset_after_if_else@9:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:251
+    // smart_contracts/staking/staking.algo.ts:277
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - stakeNow);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:251
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:277
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - stakeNow);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1413,18 +1611,18 @@ emergencyWithdrawAsset_after_if_else@9:
     itob
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:251
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:277
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - stakeNow);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:252
+    // smart_contracts/staking/staking.algo.ts:278
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:252
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:278
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1432,19 +1630,19 @@ emergencyWithdrawAsset_after_if_else@9:
     intc_1 // 1
     -
     itob
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:252
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:278
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:253
+    // smart_contracts/staking/staking.algo.ts:279
     // this.stakers(receiver).delete();
     dig 4
     box_del
     pop
-    // smart_contracts/staking/staking.algo.ts:255-262
+    // smart_contracts/staking/staking.algo.ts:281-288
     // itxn
     //   .payment({
     //     receiver: receiver,
@@ -1454,16 +1652,16 @@ emergencyWithdrawAsset_after_if_else@9:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:259
+    // smart_contracts/staking/staking.algo.ts:285
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     itxn_field Sender
-    // smart_contracts/staking/staking.algo.ts:258
+    // smart_contracts/staking/staking.algo.ts:284
     // amount: BOX_FEE - 2000,
     pushint 20500 // 20500
     itxn_field Amount
     itxn_field Receiver
-    // smart_contracts/staking/staking.algo.ts:255-261
+    // smart_contracts/staking/staking.algo.ts:281-287
     // itxn
     //   .payment({
     //     receiver: receiver,
@@ -1473,11 +1671,11 @@ emergencyWithdrawAsset_after_if_else@9:
     //   })
     intc_1 // 1
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:260
+    // smart_contracts/staking/staking.algo.ts:286
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:255-262
+    // smart_contracts/staking/staking.algo.ts:281-288
     // itxn
     //   .payment({
     //     receiver: receiver,
@@ -1487,14 +1685,14 @@ emergencyWithdrawAsset_after_if_else@9:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:209
+    // smart_contracts/staking/staking.algo.ts:230
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
 
 emergencyWithdrawAsset_ternary_false@3:
-    // smart_contracts/staking/staking.algo.ts:222
-    // const pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    // smart_contracts/staking/staking.algo.ts:243
+    // let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
     intc_0 // 0
     bury 6
     b emergencyWithdrawAsset_ternary_merge@4
@@ -1503,8 +1701,8 @@ emergencyWithdrawAsset_ternary_false@3:
 // smart_contracts/staking/staking.algo.ts::Staking.stake[routing]() -> void:
 stake:
     pushbytes ""
-    dupn 5
-    // smart_contracts/staking/staking.algo.ts:317
+    dupn 6
+    // smart_contracts/staking/staking.algo.ts:353
     // @abimethod({ allowActions: "NoOp" })
     txn GroupIndex
     pushint 2 // 2
@@ -1532,17 +1730,17 @@ stake:
     intc_1 // pay
     ==
     assert // transaction type is pay
-    // smart_contracts/staking/staking.algo.ts:319
+    // smart_contracts/staking/staking.algo.ts:355
     // assert(quantity > 0, "Invalid quantity");
     dup
     assert // Invalid quantity
-    // smart_contracts/staking/staking.algo.ts:320
+    // smart_contracts/staking/staking.algo.ts:356
     // assert(this.contract_state.value.asUint64() === 1, "Pool is inactive");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:320
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:356
     // assert(this.contract_state.value.asUint64() === 1, "Pool is inactive");
     app_global_get_ex
     assert // check GlobalState exists
@@ -1550,21 +1748,20 @@ stake:
     intc_1 // 1
     ==
     assert // Pool is inactive
-    // smart_contracts/staking/staking.algo.ts:321
-    // assert(Global.latestTimestamp < this.end_time.value.asUint64(), "Pool ended");
-    global LatestTimestamp
+    // smart_contracts/staking/staking.algo.ts:357
+    // assert(this.rewards_exhausted.value.asUint64() === 0, "Rewards exhausted");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:36
-    // end_time = GlobalState<Uint64>();
-    bytec 16 // "end_time"
-    // smart_contracts/staking/staking.algo.ts:321
-    // assert(Global.latestTimestamp < this.end_time.value.asUint64(), "Pool ended");
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:357
+    // assert(this.rewards_exhausted.value.asUint64() === 0, "Rewards exhausted");
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    <
-    assert // Pool ended
-    // smart_contracts/staking/staking.algo.ts:322-327
+    !
+    assert // Rewards exhausted
+    // smart_contracts/staking/staking.algo.ts:358-363
     // assertMatch(stakeTxn, {
     //   sender: op.Txn.sender,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -1573,10 +1770,10 @@ stake:
     // });
     dig 1
     gtxns Sender
-    // smart_contracts/staking/staking.algo.ts:323
+    // smart_contracts/staking/staking.algo.ts:359
     // sender: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:322-327
+    // smart_contracts/staking/staking.algo.ts:358-363
     // assertMatch(stakeTxn, {
     //   sender: op.Txn.sender,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -1586,10 +1783,10 @@ stake:
     ==
     dig 2
     gtxns AssetReceiver
-    // smart_contracts/staking/staking.algo.ts:324
+    // smart_contracts/staking/staking.algo.ts:360
     // assetReceiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/staking/staking.algo.ts:322-327
+    // smart_contracts/staking/staking.algo.ts:358-363
     // assertMatch(stakeTxn, {
     //   sender: op.Txn.sender,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -1600,18 +1797,18 @@ stake:
     &&
     dig 2
     gtxns XferAsset
-    // smart_contracts/staking/staking.algo.ts:325
+    // smart_contracts/staking/staking.algo.ts:361
     // xferAsset: Asset(this.staked_asset_id.value.asUint64()),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:28
     // staked_asset_id = GlobalState<Uint64>();
-    bytec 12 // "staked_asset_id"
-    // smart_contracts/staking/staking.algo.ts:325
+    bytec 16 // "staked_asset_id"
+    // smart_contracts/staking/staking.algo.ts:361
     // xferAsset: Asset(this.staked_asset_id.value.asUint64()),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:322-327
+    // smart_contracts/staking/staking.algo.ts:358-363
     // assertMatch(stakeTxn, {
     //   sender: op.Txn.sender,
     //   assetReceiver: Global.currentApplicationAddress,
@@ -1628,23 +1825,23 @@ stake:
     assert // assert target is match for conditions
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:329
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:365
     // const exists = this.stakers(op.Txn.sender).exists;
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:329
+    // smart_contracts/staking/staking.algo.ts:365
     // const exists = this.stakers(op.Txn.sender).exists;
     box_len
     dup
     uncover 2
     pop
-    // smart_contracts/staking/staking.algo.ts:330
+    // smart_contracts/staking/staking.algo.ts:366
     // if (!exists) {
     bnz stake_else_body@3
-    // smart_contracts/staking/staking.algo.ts:331-335
+    // smart_contracts/staking/staking.algo.ts:367-371
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -1653,10 +1850,10 @@ stake:
     dig 1
     dup
     gtxns Sender
-    // smart_contracts/staking/staking.algo.ts:332
+    // smart_contracts/staking/staking.algo.ts:368
     // sender: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:331-335
+    // smart_contracts/staking/staking.algo.ts:367-371
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -1665,10 +1862,10 @@ stake:
     ==
     dig 1
     gtxns Receiver
-    // smart_contracts/staking/staking.algo.ts:333
+    // smart_contracts/staking/staking.algo.ts:369
     // receiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    // smart_contracts/staking/staking.algo.ts:331-335
+    // smart_contracts/staking/staking.algo.ts:367-371
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -1678,10 +1875,10 @@ stake:
     &&
     swap
     gtxns Amount
-    // smart_contracts/staking/staking.algo.ts:334
+    // smart_contracts/staking/staking.algo.ts:370
     // amount: BOX_FEE,
     intc 6 // 22500
-    // smart_contracts/staking/staking.algo.ts:331-335
+    // smart_contracts/staking/staking.algo.ts:367-371
     // assertMatch(mbrTxn, {
     //   sender: op.Txn.sender,
     //   receiver: Global.currentApplicationAddress,
@@ -1692,23 +1889,23 @@ stake:
     assert // assert target is match for conditions
 
 stake_after_if_else@5:
-    // smart_contracts/staking/staking.algo.ts:348
+    // smart_contracts/staking/staking.algo.ts:384
     // this.updatePool();
     callsub updatePool
-    // smart_contracts/staking/staking.algo.ts:350
+    // smart_contracts/staking/staking.algo.ts:386
     // const prevStake: uint64 = exists ? this.stakers(op.Txn.sender).value.stake.asUint64() : 0;
     dup
     bz stake_ternary_false@7
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:350
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:386
     // const prevStake: uint64 = exists ? this.stakers(op.Txn.sender).value.stake.asUint64() : 0;
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:350
+    // smart_contracts/staking/staking.algo.ts:386
     // const prevStake: uint64 = exists ? this.stakers(op.Txn.sender).value.stake.asUint64() : 0;
     box_get
     assert // Box must have value
@@ -1717,20 +1914,20 @@ stake_after_if_else@5:
     bury 4
 
 stake_ternary_merge@8:
-    // smart_contracts/staking/staking.algo.ts:351
+    // smart_contracts/staking/staking.algo.ts:387
     // const prevDebt: uint64 = exists ? this.stakers(op.Txn.sender).value.rewardDebt.asUint64() : 0;
     dup
     bz stake_ternary_false@10
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:351
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:387
     // const prevDebt: uint64 = exists ? this.stakers(op.Txn.sender).value.rewardDebt.asUint64() : 0;
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:351
+    // smart_contracts/staking/staking.algo.ts:387
     // const prevDebt: uint64 = exists ? this.stakers(op.Txn.sender).value.rewardDebt.asUint64() : 0;
     box_get
     assert // Box must have value
@@ -1739,13 +1936,13 @@ stake_ternary_merge@8:
     bury 5
 
 stake_ternary_merge@11:
-    // smart_contracts/staking/staking.algo.ts:352
+    // smart_contracts/staking/staking.algo.ts:388
     // const accrued = mulDivW(prevStake, this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:352
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:388
     // const accrued = mulDivW(prevStake, this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1754,36 +1951,68 @@ stake_ternary_merge@11:
     // const [hi, lo] = mulw(a, b);
     dig 4
     mulw
-    // smart_contracts/staking/staking.algo.ts:352
+    // smart_contracts/staking/staking.algo.ts:388
     // const accrued = mulDivW(prevStake, this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
     dup
-    bury 10
-    // smart_contracts/staking/staking.algo.ts:353
-    // const pending: uint64 = accrued > prevDebt ? accrued - prevDebt : 0;
+    bury 11
+    // smart_contracts/staking/staking.algo.ts:389
+    // let pending: uint64 = accrued > prevDebt ? accrued - prevDebt : 0;
     dig 5
     >
     bz stake_ternary_false@13
-    dig 8
+    dig 9
     dig 5
     -
     bury 6
 
 stake_ternary_merge@14:
-    // smart_contracts/staking/staking.algo.ts:355
+    // smart_contracts/staking/staking.algo.ts:390
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:39
+    // accrued_rewards = GlobalState<Uint64>();
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:390
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:390
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    -
+    dup
+    bury 8
+    // smart_contracts/staking/staking.algo.ts:391
+    // if (pending > payable) {
+    dig 6
+    <
+    bz stake_after_if_else@16
+    dig 6
+    bury 6
+
+stake_after_if_else@16:
+    // smart_contracts/staking/staking.algo.ts:395
     // if (pending > 0) {
     dig 5
-    bz stake_after_if_else@19
-    // smart_contracts/staking/staking.algo.ts:356
+    bz stake_after_if_else@21
+    // smart_contracts/staking/staking.algo.ts:396
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:49
+    // smart_contracts/staking/staking.algo.ts:50
     // platform_fee_bps = GlobalState<Uint64>();
-    bytec 11 // "platform_fee_bps"
-    // smart_contracts/staking/staking.algo.ts:356
+    bytec 15 // "platform_fee_bps"
+    // smart_contracts/staking/staking.algo.ts:396
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1794,47 +2023,68 @@ stake_ternary_merge@14:
     dup
     uncover 2
     mulw
-    // smart_contracts/staking/staking.algo.ts:356
+    // smart_contracts/staking/staking.algo.ts:396
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc 5 // 10000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
     dup
-    bury 10
-    // smart_contracts/staking/staking.algo.ts:357
+    bury 11
+    // smart_contracts/staking/staking.algo.ts:397
     // const net: uint64 = pending - fee;
     swap
     dig 1
     -
-    bury 8
-    // smart_contracts/staking/staking.algo.ts:358
+    bury 9
+    // smart_contracts/staking/staking.algo.ts:398
     // if (fee > 0) {
-    bz stake_after_if_else@17
-    // smart_contracts/staking/staking.algo.ts:359
+    bz stake_after_if_else@19
+    // smart_contracts/staking/staking.algo.ts:399
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:359
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:399
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    dig 8
+    dig 9
     +
     itob
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:359
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:399
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     swap
     app_global_put
 
-stake_after_if_else@17:
-    // smart_contracts/staking/staking.algo.ts:361-369
+stake_after_if_else@19:
+    // smart_contracts/staking/staking.algo.ts:401
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:401
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    dig 6
+    +
+    itob
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:401
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:402-410
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1845,29 +2095,29 @@ stake_after_if_else@17:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:363
+    // smart_contracts/staking/staking.algo.ts:404
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:363
+    // smart_contracts/staking/staking.algo.ts:404
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:364
+    // smart_contracts/staking/staking.algo.ts:405
     // assetReceiver: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:365
+    // smart_contracts/staking/staking.algo.ts:406
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    dig 9
+    dig 10
     itxn_field AssetAmount
     itxn_field Sender
     itxn_field AssetReceiver
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:361-368
+    // smart_contracts/staking/staking.algo.ts:402-409
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1878,11 +2128,11 @@ stake_after_if_else@17:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:367
+    // smart_contracts/staking/staking.algo.ts:408
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:361-369
+    // smart_contracts/staking/staking.algo.ts:402-410
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -1894,21 +2144,21 @@ stake_after_if_else@17:
     //   .submit();
     itxn_submit
 
-stake_after_if_else@19:
-    // smart_contracts/staking/staking.algo.ts:372
+stake_after_if_else@21:
+    // smart_contracts/staking/staking.algo.ts:413
     // const newStake: uint64 = prevStake + quantity;
     dig 3
     dig 3
     dup
     cover 2
     +
-    // smart_contracts/staking/staking.algo.ts:373
+    // smart_contracts/staking/staking.algo.ts:414
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() + quantity);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:373
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:414
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() + quantity);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1918,18 +2168,18 @@ stake_after_if_else@19:
     itob
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:373
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:414
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() + quantity);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:375
+    // smart_contracts/staking/staking.algo.ts:416
     // const newDebt = mulDivW(newStake, this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:375
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:416
     // const newDebt = mulDivW(newStake, this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1938,21 +2188,21 @@ stake_after_if_else@19:
     // const [hi, lo] = mulw(a, b);
     dig 1
     mulw
-    // smart_contracts/staking/staking.algo.ts:375
+    // smart_contracts/staking/staking.algo.ts:416
     // const newDebt = mulDivW(newStake, this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
-    // smart_contracts/staking/staking.algo.ts:377
+    // smart_contracts/staking/staking.algo.ts:418
     // stake: new Uint64(newStake),
     swap
     itob
-    // smart_contracts/staking/staking.algo.ts:378
+    // smart_contracts/staking/staking.algo.ts:419
     // rewardDebt: new Uint64(newDebt),
     swap
     itob
-    // smart_contracts/staking/staking.algo.ts:376-379
+    // smart_contracts/staking/staking.algo.ts:417-420
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     //   stake: new Uint64(newStake),
     //   rewardDebt: new Uint64(newDebt),
@@ -1960,31 +2210,31 @@ stake_after_if_else@19:
     concat
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:376
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:417
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:376-379
+    // smart_contracts/staking/staking.algo.ts:417-420
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     //   stake: new Uint64(newStake),
     //   rewardDebt: new Uint64(newDebt),
     // });
     swap
     box_put
-    // smart_contracts/staking/staking.algo.ts:381
+    // smart_contracts/staking/staking.algo.ts:422
     // if (!exists) {
     dup
-    bnz stake_after_if_else@21
-    // smart_contracts/staking/staking.algo.ts:382
+    bnz stake_after_if_else@23
+    // smart_contracts/staking/staking.algo.ts:423
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() + 1);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:382
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:423
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() + 1);
     app_global_get_ex
     assert // check GlobalState exists
@@ -1992,43 +2242,43 @@ stake_after_if_else@19:
     intc_1 // 1
     +
     itob
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:382
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:423
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() + 1);
     swap
     app_global_put
 
-stake_after_if_else@21:
-    // smart_contracts/staking/staking.algo.ts:317
+stake_after_if_else@23:
+    // smart_contracts/staking/staking.algo.ts:353
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
 
 stake_ternary_false@13:
-    // smart_contracts/staking/staking.algo.ts:353
-    // const pending: uint64 = accrued > prevDebt ? accrued - prevDebt : 0;
+    // smart_contracts/staking/staking.algo.ts:389
+    // let pending: uint64 = accrued > prevDebt ? accrued - prevDebt : 0;
     intc_0 // 0
     bury 6
     b stake_ternary_merge@14
 
 stake_ternary_false@10:
-    // smart_contracts/staking/staking.algo.ts:351
+    // smart_contracts/staking/staking.algo.ts:387
     // const prevDebt: uint64 = exists ? this.stakers(op.Txn.sender).value.rewardDebt.asUint64() : 0;
     intc_0 // 0
     bury 5
     b stake_ternary_merge@11
 
 stake_ternary_false@7:
-    // smart_contracts/staking/staking.algo.ts:350
+    // smart_contracts/staking/staking.algo.ts:386
     // const prevStake: uint64 = exists ? this.stakers(op.Txn.sender).value.stake.asUint64() : 0;
     intc_0 // 0
     bury 4
     b stake_ternary_merge@8
 
 stake_else_body@3:
-    // smart_contracts/staking/staking.algo.ts:338-345
+    // smart_contracts/staking/staking.algo.ts:374-381
     // itxn
     //   .payment({
     //     receiver: op.Txn.sender,
@@ -2038,19 +2288,19 @@ stake_else_body@3:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:340
+    // smart_contracts/staking/staking.algo.ts:376
     // receiver: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:342
+    // smart_contracts/staking/staking.algo.ts:378
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     itxn_field Sender
-    // smart_contracts/staking/staking.algo.ts:341
+    // smart_contracts/staking/staking.algo.ts:377
     // amount: BOX_FEE,
     intc 6 // 22500
     itxn_field Amount
     itxn_field Receiver
-    // smart_contracts/staking/staking.algo.ts:338-344
+    // smart_contracts/staking/staking.algo.ts:374-380
     // itxn
     //   .payment({
     //     receiver: op.Txn.sender,
@@ -2060,11 +2310,11 @@ stake_else_body@3:
     //   })
     intc_1 // 1
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:343
+    // smart_contracts/staking/staking.algo.ts:379
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:338-345
+    // smart_contracts/staking/staking.algo.ts:374-381
     // itxn
     //   .payment({
     //     receiver: op.Txn.sender,
@@ -2080,28 +2330,28 @@ stake_else_body@3:
 // smart_contracts/staking/staking.algo.ts::Staking.claimRewards[routing]() -> void:
 claimRewards:
     pushbytes ""
-    dupn 2
+    dupn 3
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:388
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:429
     // assert(this.stakers(op.Txn.sender).exists, "No stake found for user");
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:388
+    // smart_contracts/staking/staking.algo.ts:429
     // assert(this.stakers(op.Txn.sender).exists, "No stake found for user");
     box_len
     bury 1
     assert // No stake found for user
-    // smart_contracts/staking/staking.algo.ts:389
+    // smart_contracts/staking/staking.algo.ts:430
     // assert(this.contract_state.value.asUint64() === 1, "Pool is inactive");
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:389
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:430
     // assert(this.contract_state.value.asUint64() === 1, "Pool is inactive");
     app_global_get_ex
     assert // check GlobalState exists
@@ -2111,18 +2361,18 @@ claimRewards:
     assert // Pool is inactive
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:390
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:431
     // const staker = clone(this.stakers(op.Txn.sender).value);
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:390
+    // smart_contracts/staking/staking.algo.ts:431
     // const staker = clone(this.stakers(op.Txn.sender).value);
     box_get
     assert // Box must have value
-    // smart_contracts/staking/staking.algo.ts:391
+    // smart_contracts/staking/staking.algo.ts:432
     // assert(staker.stake.asUint64() > 0, "No stake");
     dup
     extract 0 8
@@ -2134,16 +2384,16 @@ claimRewards:
     cover 2
     dup
     assert // No stake
-    // smart_contracts/staking/staking.algo.ts:393
+    // smart_contracts/staking/staking.algo.ts:434
     // this.updatePool();
     callsub updatePool
-    // smart_contracts/staking/staking.algo.ts:395
+    // smart_contracts/staking/staking.algo.ts:436
     // const accrued = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:395
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:436
     // const accrued = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2151,7 +2401,7 @@ claimRewards:
     // smart_contracts/staking/config.algo.ts:28
     // const [hi, lo] = mulw(a, b);
     mulw
-    // smart_contracts/staking/staking.algo.ts:395
+    // smart_contracts/staking/staking.algo.ts:436
     // const accrued = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
@@ -2159,8 +2409,8 @@ claimRewards:
     divw
     dup
     uncover 2
-    // smart_contracts/staking/staking.algo.ts:396
-    // const pending: uint64 = accrued > staker.rewardDebt.asUint64() ? accrued - staker.rewardDebt.asUint64() : 0;
+    // smart_contracts/staking/staking.algo.ts:437
+    // let pending: uint64 = accrued > staker.rewardDebt.asUint64() ? accrued - staker.rewardDebt.asUint64() : 0;
     intc_2 // 8
     extract_uint64
     dup
@@ -2172,17 +2422,49 @@ claimRewards:
     bury 5
 
 claimRewards_ternary_merge@4:
-    // smart_contracts/staking/staking.algo.ts:398
+    // smart_contracts/staking/staking.algo.ts:438
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:39
+    // accrued_rewards = GlobalState<Uint64>();
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:438
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:438
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    -
+    dup
+    bury 7
+    // smart_contracts/staking/staking.algo.ts:439
+    // if (pending > payable) {
+    dig 5
+    <
+    bz claimRewards_after_if_else@6
+    dig 5
+    bury 5
+
+claimRewards_after_if_else@6:
+    // smart_contracts/staking/staking.algo.ts:443
     // if (pending > 0) {
     dig 4
-    bz claimRewards_after_if_else@9
-    // smart_contracts/staking/staking.algo.ts:399
+    bz claimRewards_after_if_else@11
+    // smart_contracts/staking/staking.algo.ts:444
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:49
+    // smart_contracts/staking/staking.algo.ts:50
     // platform_fee_bps = GlobalState<Uint64>();
-    bytec 11 // "platform_fee_bps"
-    // smart_contracts/staking/staking.algo.ts:399
+    bytec 15 // "platform_fee_bps"
+    // smart_contracts/staking/staking.algo.ts:444
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2193,47 +2475,68 @@ claimRewards_ternary_merge@4:
     dup
     uncover 2
     mulw
-    // smart_contracts/staking/staking.algo.ts:399
+    // smart_contracts/staking/staking.algo.ts:444
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc 5 // 10000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
     dup
-    bury 9
-    // smart_contracts/staking/staking.algo.ts:400
+    bury 10
+    // smart_contracts/staking/staking.algo.ts:445
     // const net: uint64 = pending - fee;
     swap
     dig 1
     -
-    bury 7
-    // smart_contracts/staking/staking.algo.ts:401
+    bury 8
+    // smart_contracts/staking/staking.algo.ts:446
     // if (fee > 0) {
-    bz claimRewards_after_if_else@7
-    // smart_contracts/staking/staking.algo.ts:402
+    bz claimRewards_after_if_else@9
+    // smart_contracts/staking/staking.algo.ts:447
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:402
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:447
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    dig 7
+    dig 8
     +
     itob
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:402
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:447
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     swap
     app_global_put
 
-claimRewards_after_if_else@7:
-    // smart_contracts/staking/staking.algo.ts:404-412
+claimRewards_after_if_else@9:
+    // smart_contracts/staking/staking.algo.ts:449
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:449
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    dig 5
+    +
+    itob
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:449
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:450-458
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2244,29 +2547,29 @@ claimRewards_after_if_else@7:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:406
+    // smart_contracts/staking/staking.algo.ts:452
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:406
+    // smart_contracts/staking/staking.algo.ts:452
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:407
+    // smart_contracts/staking/staking.algo.ts:453
     // assetReceiver: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:408
+    // smart_contracts/staking/staking.algo.ts:454
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    dig 8
+    dig 9
     itxn_field AssetAmount
     itxn_field Sender
     itxn_field AssetReceiver
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:404-411
+    // smart_contracts/staking/staking.algo.ts:450-457
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2277,11 +2580,11 @@ claimRewards_after_if_else@7:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:410
+    // smart_contracts/staking/staking.algo.ts:456
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:404-412
+    // smart_contracts/staking/staking.algo.ts:450-458
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2293,14 +2596,14 @@ claimRewards_after_if_else@7:
     //   .submit();
     itxn_submit
 
-claimRewards_after_if_else@9:
-    // smart_contracts/staking/staking.algo.ts:415
+claimRewards_after_if_else@11:
+    // smart_contracts/staking/staking.algo.ts:461
     // const newDebt = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:415
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:461
     // const newDebt = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2309,16 +2612,16 @@ claimRewards_after_if_else@9:
     // const [hi, lo] = mulw(a, b);
     dig 3
     mulw
-    // smart_contracts/staking/staking.algo.ts:415
+    // smart_contracts/staking/staking.algo.ts:461
     // const newDebt = mulDivW(staker.stake.asUint64(), this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
-    // smart_contracts/staking/staking.algo.ts:418
+    // smart_contracts/staking/staking.algo.ts:464
     // rewardDebt: new Uint64(newDebt),
     itob
-    // smart_contracts/staking/staking.algo.ts:416-419
+    // smart_contracts/staking/staking.algo.ts:462-465
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     //   stake: staker.stake,
     //   rewardDebt: new Uint64(newDebt),
@@ -2328,28 +2631,28 @@ claimRewards_after_if_else@9:
     concat
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:416
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:462
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:416-419
+    // smart_contracts/staking/staking.algo.ts:462-465
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     //   stake: staker.stake,
     //   rewardDebt: new Uint64(newDebt),
     // });
     swap
     box_put
-    // smart_contracts/staking/staking.algo.ts:386
+    // smart_contracts/staking/staking.algo.ts:427
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
 
 claimRewards_ternary_false@3:
-    // smart_contracts/staking/staking.algo.ts:396
-    // const pending: uint64 = accrued > staker.rewardDebt.asUint64() ? accrued - staker.rewardDebt.asUint64() : 0;
+    // smart_contracts/staking/staking.algo.ts:437
+    // let pending: uint64 = accrued > staker.rewardDebt.asUint64() ? accrued - staker.rewardDebt.asUint64() : 0;
     intc_0 // 0
     bury 5
     b claimRewards_ternary_merge@4
@@ -2358,8 +2661,8 @@ claimRewards_ternary_false@3:
 // smart_contracts/staking/staking.algo.ts::Staking.unstake[routing]() -> void:
 unstake:
     pushbytes ""
-    dupn 3
-    // smart_contracts/staking/staking.algo.ts:422
+    dupn 4
+    // smart_contracts/staking/staking.algo.ts:468
     // @abimethod({ allowActions: "NoOp" })
     txna ApplicationArgs 1
     dup
@@ -2370,46 +2673,46 @@ unstake:
     btoi
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:424
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:470
     // assert(this.stakers(op.Txn.sender).exists, "No stake found for user");
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:424
+    // smart_contracts/staking/staking.algo.ts:470
     // assert(this.stakers(op.Txn.sender).exists, "No stake found for user");
     box_len
     bury 1
     assert // No stake found for user
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:425
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:471
     // const rec = clone(this.stakers(op.Txn.sender).value);
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:425
+    // smart_contracts/staking/staking.algo.ts:471
     // const rec = clone(this.stakers(op.Txn.sender).value);
     box_get
     assert // Box must have value
-    // smart_contracts/staking/staking.algo.ts:426
+    // smart_contracts/staking/staking.algo.ts:472
     // const stakeNow: uint64 = rec.stake.asUint64();
     dup
     intc_0 // 0
     extract_uint64
     dup
     cover 3
-    // smart_contracts/staking/staking.algo.ts:427
+    // smart_contracts/staking/staking.algo.ts:473
     // assert(stakeNow > 0, "No stake");
     dup
     assert // No stake
-    // smart_contracts/staking/staking.algo.ts:429
+    // smart_contracts/staking/staking.algo.ts:475
     // this.updatePool();
     callsub updatePool
-    // smart_contracts/staking/staking.algo.ts:431
+    // smart_contracts/staking/staking.algo.ts:477
     // const amountToWithdraw: uint64 = quantity === 0 ? stakeNow : quantity;
     dig 2
     !
@@ -2419,18 +2722,18 @@ unstake:
     select
     dup
     cover 3
-    // smart_contracts/staking/staking.algo.ts:432
+    // smart_contracts/staking/staking.algo.ts:478
     // assert(stakeNow >= amountToWithdraw, "Unstake amount exceeds balance");
     dig 1
     <=
     assert // Unstake amount exceeds balance
-    // smart_contracts/staking/staking.algo.ts:434
+    // smart_contracts/staking/staking.algo.ts:480
     // const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:434
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:480
     // const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2438,7 +2741,7 @@ unstake:
     // smart_contracts/staking/config.algo.ts:28
     // const [hi, lo] = mulw(a, b);
     mulw
-    // smart_contracts/staking/staking.algo.ts:434
+    // smart_contracts/staking/staking.algo.ts:480
     // const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
@@ -2446,8 +2749,8 @@ unstake:
     divw
     dup
     uncover 2
-    // smart_contracts/staking/staking.algo.ts:435
-    // const pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    // smart_contracts/staking/staking.algo.ts:481
+    // let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
     intc_2 // 8
     extract_uint64
     dup
@@ -2459,17 +2762,49 @@ unstake:
     bury 6
 
 unstake_ternary_merge@4:
-    // smart_contracts/staking/staking.algo.ts:437
+    // smart_contracts/staking/staking.algo.ts:482
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:39
+    // accrued_rewards = GlobalState<Uint64>();
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:482
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:482
+    // const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    -
+    dup
+    bury 8
+    // smart_contracts/staking/staking.algo.ts:483
+    // if (pending > payable) {
+    dig 6
+    <
+    bz unstake_after_if_else@6
+    dig 6
+    bury 6
+
+unstake_after_if_else@6:
+    // smart_contracts/staking/staking.algo.ts:487
     // if (pending > 0) {
     dig 5
-    bz unstake_after_if_else@9
-    // smart_contracts/staking/staking.algo.ts:438
+    bz unstake_after_if_else@11
+    // smart_contracts/staking/staking.algo.ts:488
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:49
+    // smart_contracts/staking/staking.algo.ts:50
     // platform_fee_bps = GlobalState<Uint64>();
-    bytec 11 // "platform_fee_bps"
-    // smart_contracts/staking/staking.algo.ts:438
+    bytec 15 // "platform_fee_bps"
+    // smart_contracts/staking/staking.algo.ts:488
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2480,47 +2815,68 @@ unstake_ternary_merge@4:
     dup
     uncover 2
     mulw
-    // smart_contracts/staking/staking.algo.ts:438
+    // smart_contracts/staking/staking.algo.ts:488
     // const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
     intc 5 // 10000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
     dup
-    bury 10
-    // smart_contracts/staking/staking.algo.ts:439
+    bury 11
+    // smart_contracts/staking/staking.algo.ts:489
     // const net: uint64 = pending - fee;
     swap
     dig 1
     -
-    bury 8
-    // smart_contracts/staking/staking.algo.ts:440
+    bury 9
+    // smart_contracts/staking/staking.algo.ts:490
     // if (fee > 0) {
-    bz unstake_after_if_else@7
-    // smart_contracts/staking/staking.algo.ts:441
+    bz unstake_after_if_else@9
+    // smart_contracts/staking/staking.algo.ts:491
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:441
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:491
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    dig 8
+    dig 9
     +
     itob
-    // smart_contracts/staking/staking.algo.ts:50
+    // smart_contracts/staking/staking.algo.ts:51
     // platform_fees_accrued = GlobalState<Uint64>();
-    bytec_1 // "platform_fees_accrued"
-    // smart_contracts/staking/staking.algo.ts:441
+    bytec_2 // "platform_fees_accrued"
+    // smart_contracts/staking/staking.algo.ts:491
     // this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
     swap
     app_global_put
 
-unstake_after_if_else@7:
-    // smart_contracts/staking/staking.algo.ts:443-451
+unstake_after_if_else@9:
+    // smart_contracts/staking/staking.algo.ts:493
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:493
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    dig 6
+    +
+    itob
+    // smart_contracts/staking/staking.algo.ts:42
+    // rewards_paid = GlobalState<Uint64>();
+    bytec_1 // "rewards_paid"
+    // smart_contracts/staking/staking.algo.ts:493
+    // this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:494-502
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2531,29 +2887,29 @@ unstake_after_if_else@7:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:445
+    // smart_contracts/staking/staking.algo.ts:496
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:445
+    // smart_contracts/staking/staking.algo.ts:496
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:446
+    // smart_contracts/staking/staking.algo.ts:497
     // assetReceiver: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:447
+    // smart_contracts/staking/staking.algo.ts:498
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
-    dig 9
+    dig 10
     itxn_field AssetAmount
     itxn_field Sender
     itxn_field AssetReceiver
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:443-450
+    // smart_contracts/staking/staking.algo.ts:494-501
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2564,11 +2920,11 @@ unstake_after_if_else@7:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:449
+    // smart_contracts/staking/staking.algo.ts:500
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:443-451
+    // smart_contracts/staking/staking.algo.ts:494-502
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2580,8 +2936,8 @@ unstake_after_if_else@7:
     //   .submit();
     itxn_submit
 
-unstake_after_if_else@9:
-    // smart_contracts/staking/staking.algo.ts:454-462
+unstake_after_if_else@11:
+    // smart_contracts/staking/staking.algo.ts:505-513
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -2592,21 +2948,21 @@ unstake_after_if_else@9:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:456
+    // smart_contracts/staking/staking.algo.ts:507
     // xferAsset: this.staked_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:28
     // staked_asset_id = GlobalState<Uint64>();
-    bytec 12 // "staked_asset_id"
-    // smart_contracts/staking/staking.algo.ts:456
+    bytec 16 // "staked_asset_id"
+    // smart_contracts/staking/staking.algo.ts:507
     // xferAsset: this.staked_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:457
+    // smart_contracts/staking/staking.algo.ts:508
     // assetReceiver: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:458
+    // smart_contracts/staking/staking.algo.ts:509
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     dig 5
@@ -2616,7 +2972,7 @@ unstake_after_if_else@9:
     itxn_field Sender
     itxn_field AssetReceiver
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:454-461
+    // smart_contracts/staking/staking.algo.ts:505-512
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -2627,11 +2983,11 @@ unstake_after_if_else@9:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:460
+    // smart_contracts/staking/staking.algo.ts:511
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:454-462
+    // smart_contracts/staking/staking.algo.ts:505-513
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -2642,13 +2998,13 @@ unstake_after_if_else@9:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:464
+    // smart_contracts/staking/staking.algo.ts:515
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - amountToWithdraw);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:464
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:515
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - amountToWithdraw);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2658,41 +3014,41 @@ unstake_after_if_else@9:
     itob
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:464
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:515
     // this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - amountToWithdraw);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:466
+    // smart_contracts/staking/staking.algo.ts:517
     // const remaining: uint64 = stakeNow - amountToWithdraw;
     dig 4
     swap
     -
     dup
     bury 6
-    // smart_contracts/staking/staking.algo.ts:467
+    // smart_contracts/staking/staking.algo.ts:518
     // if (remaining === 0) {
-    bnz unstake_else_body@13
+    bnz unstake_else_body@15
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:468
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:519
     // this.stakers(op.Txn.sender).delete();
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:468
+    // smart_contracts/staking/staking.algo.ts:519
     // this.stakers(op.Txn.sender).delete();
     box_del
     pop
-    // smart_contracts/staking/staking.algo.ts:469
+    // smart_contracts/staking/staking.algo.ts:520
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:469
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:520
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2700,14 +3056,14 @@ unstake_after_if_else@9:
     intc_1 // 1
     -
     itob
-    // smart_contracts/staking/staking.algo.ts:45
+    // smart_contracts/staking/staking.algo.ts:46
     // num_stakers = GlobalState<Uint64>();
-    bytec 9 // "num_stakers"
-    // smart_contracts/staking/staking.algo.ts:469
+    bytec 13 // "num_stakers"
+    // smart_contracts/staking/staking.algo.ts:520
     // this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:470-477
+    // smart_contracts/staking/staking.algo.ts:521-528
     // itxn
     //   .payment({
     //     receiver: op.Txn.sender,
@@ -2717,19 +3073,19 @@ unstake_after_if_else@9:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:472
+    // smart_contracts/staking/staking.algo.ts:523
     // receiver: op.Txn.sender,
     txn Sender
-    // smart_contracts/staking/staking.algo.ts:474
+    // smart_contracts/staking/staking.algo.ts:525
     // sender: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     itxn_field Sender
-    // smart_contracts/staking/staking.algo.ts:473
+    // smart_contracts/staking/staking.algo.ts:524
     // amount: BOX_FEE,
     intc 6 // 22500
     itxn_field Amount
     itxn_field Receiver
-    // smart_contracts/staking/staking.algo.ts:470-476
+    // smart_contracts/staking/staking.algo.ts:521-527
     // itxn
     //   .payment({
     //     receiver: op.Txn.sender,
@@ -2739,11 +3095,11 @@ unstake_after_if_else@9:
     //   })
     intc_1 // 1
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:475
+    // smart_contracts/staking/staking.algo.ts:526
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:470-477
+    // smart_contracts/staking/staking.algo.ts:521-528
     // itxn
     //   .payment({
     //     receiver: op.Txn.sender,
@@ -2754,20 +3110,20 @@ unstake_after_if_else@9:
     //   .submit();
     itxn_submit
 
-unstake_after_if_else@14:
-    // smart_contracts/staking/staking.algo.ts:422
+unstake_after_if_else@16:
+    // smart_contracts/staking/staking.algo.ts:468
     // @abimethod({ allowActions: "NoOp" })
     intc_1 // 1
     return
 
-unstake_else_body@13:
-    // smart_contracts/staking/staking.algo.ts:479
+unstake_else_body@15:
+    // smart_contracts/staking/staking.algo.ts:530
     // const newDebt = mulDivW(remaining, this.reward_per_token.value.asUint64(), PRECISION);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:479
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:530
     // const newDebt = mulDivW(remaining, this.reward_per_token.value.asUint64(), PRECISION);
     app_global_get_ex
     assert // check GlobalState exists
@@ -2778,21 +3134,21 @@ unstake_else_body@13:
     dup
     uncover 2
     mulw
-    // smart_contracts/staking/staking.algo.ts:479
+    // smart_contracts/staking/staking.algo.ts:530
     // const newDebt = mulDivW(remaining, this.reward_per_token.value.asUint64(), PRECISION);
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
-    // smart_contracts/staking/staking.algo.ts:481
+    // smart_contracts/staking/staking.algo.ts:532
     // stake: new Uint64(remaining),
     swap
     itob
-    // smart_contracts/staking/staking.algo.ts:482
+    // smart_contracts/staking/staking.algo.ts:533
     // rewardDebt: new Uint64(newDebt),
     swap
     itob
-    // smart_contracts/staking/staking.algo.ts:480-483
+    // smart_contracts/staking/staking.algo.ts:531-534
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     //   stake: new Uint64(remaining),
     //   rewardDebt: new Uint64(newDebt),
@@ -2800,25 +3156,25 @@ unstake_else_body@13:
     concat
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
-    bytec_2 // "st"
-    // smart_contracts/staking/staking.algo.ts:480
+    bytec_3 // "st"
+    // smart_contracts/staking/staking.algo.ts:531
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     txn Sender
     // smart_contracts/staking/staking.algo.ts:26
     // stakers = BoxMap<Account, StakeInfoRecord>({ keyPrefix: "st" });
     concat
-    // smart_contracts/staking/staking.algo.ts:480-483
+    // smart_contracts/staking/staking.algo.ts:531-534
     // this.stakers(op.Txn.sender).value = new StakeInfoRecord({
     //   stake: new Uint64(remaining),
     //   rewardDebt: new Uint64(newDebt),
     // });
     swap
     box_put
-    b unstake_after_if_else@14
+    b unstake_after_if_else@16
 
 unstake_ternary_false@3:
-    // smart_contracts/staking/staking.algo.ts:435
-    // const pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
+    // smart_contracts/staking/staking.algo.ts:481
+    // let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
     intc_0 // 0
     bury 6
     b unstake_ternary_merge@4
@@ -2826,33 +3182,33 @@ unstake_ternary_false@3:
 
 // smart_contracts/staking/staking.algo.ts::Staking.deleteApplication[routing]() -> void:
 deleteApplication:
-    // smart_contracts/staking/staking.algo.ts:489
+    // smart_contracts/staking/staking.algo.ts:540
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can delete application");
     txn Sender
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:44
+    // smart_contracts/staking/staking.algo.ts:45
     // super_admin_address = GlobalState<Account>();
-    bytec 10 // "super_admin_address"
-    // smart_contracts/staking/staking.algo.ts:489
+    bytec 14 // "super_admin_address"
+    // smart_contracts/staking/staking.algo.ts:540
     // assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can delete application");
     app_global_get_ex
     assert // check GlobalState exists
     ==
     assert // Only super admin can delete application
-    // smart_contracts/staking/staking.algo.ts:490
+    // smart_contracts/staking/staking.algo.ts:541
     // assert(this.total_staked.value.asUint64() === 0, "Staked assets still exist");
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:490
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:541
     // assert(this.total_staked.value.asUint64() === 0, "Staked assets still exist");
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     !
     assert // Staked assets still exist
-    // smart_contracts/staking/staking.algo.ts:492-500
+    // smart_contracts/staking/staking.algo.ts:543-551
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -2863,39 +3219,39 @@ deleteApplication:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:494
+    // smart_contracts/staking/staking.algo.ts:545
     // xferAsset: this.staked_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:28
     // staked_asset_id = GlobalState<Uint64>();
-    bytec 12 // "staked_asset_id"
-    // smart_contracts/staking/staking.algo.ts:494
+    bytec 16 // "staked_asset_id"
+    // smart_contracts/staking/staking.algo.ts:545
     // xferAsset: this.staked_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     dup
     btoi
-    // smart_contracts/staking/staking.algo.ts:495
+    // smart_contracts/staking/staking.algo.ts:546
     // assetCloseTo: this.admin_address.value,
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:495
+    // smart_contracts/staking/staking.algo.ts:546
     // assetCloseTo: this.admin_address.value,
     app_global_get_ex
     assert // check GlobalState exists
-    // smart_contracts/staking/staking.algo.ts:497
+    // smart_contracts/staking/staking.algo.ts:548
     // assetReceiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     itxn_field AssetReceiver
-    // smart_contracts/staking/staking.algo.ts:496
+    // smart_contracts/staking/staking.algo.ts:547
     // assetAmount: 0,
     intc_0 // 0
     itxn_field AssetAmount
     itxn_field AssetCloseTo
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:492-499
+    // smart_contracts/staking/staking.algo.ts:543-550
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -2906,11 +3262,11 @@ deleteApplication:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:498
+    // smart_contracts/staking/staking.algo.ts:549
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:492-500
+    // smart_contracts/staking/staking.algo.ts:543-551
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.staked_asset_id.value.asUint64(),
@@ -2921,19 +3277,19 @@ deleteApplication:
     //   })
     //   .submit();
     itxn_submit
-    // smart_contracts/staking/staking.algo.ts:502
+    // smart_contracts/staking/staking.algo.ts:553
     // if (this.staked_asset_id.value !== this.reward_asset_id.value) {
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:502
+    // smart_contracts/staking/staking.algo.ts:553
     // if (this.staked_asset_id.value !== this.reward_asset_id.value) {
     app_global_get_ex
     assert // check GlobalState exists
     !=
     bz deleteApplication_after_if_else@5
-    // smart_contracts/staking/staking.algo.ts:503-511
+    // smart_contracts/staking/staking.algo.ts:554-562
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2944,38 +3300,38 @@ deleteApplication:
     //   })
     //   .submit();
     itxn_begin
-    // smart_contracts/staking/staking.algo.ts:505
+    // smart_contracts/staking/staking.algo.ts:556
     // xferAsset: this.reward_asset_id.value.asUint64(),
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:29
     // reward_asset_id = GlobalState<Uint64>();
     bytec 5 // "reward_asset_id"
-    // smart_contracts/staking/staking.algo.ts:505
+    // smart_contracts/staking/staking.algo.ts:556
     // xferAsset: this.reward_asset_id.value.asUint64(),
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    // smart_contracts/staking/staking.algo.ts:506
+    // smart_contracts/staking/staking.algo.ts:557
     // assetCloseTo: this.admin_address.value,
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:43
+    // smart_contracts/staking/staking.algo.ts:44
     // admin_address = GlobalState<Account>();
     bytec 4 // "admin_address"
-    // smart_contracts/staking/staking.algo.ts:506
+    // smart_contracts/staking/staking.algo.ts:557
     // assetCloseTo: this.admin_address.value,
     app_global_get_ex
     assert // check GlobalState exists
-    // smart_contracts/staking/staking.algo.ts:508
+    // smart_contracts/staking/staking.algo.ts:559
     // assetReceiver: Global.currentApplicationAddress,
     global CurrentApplicationAddress
     itxn_field AssetReceiver
-    // smart_contracts/staking/staking.algo.ts:507
+    // smart_contracts/staking/staking.algo.ts:558
     // assetAmount: 0,
     intc_0 // 0
     itxn_field AssetAmount
     itxn_field AssetCloseTo
     itxn_field XferAsset
-    // smart_contracts/staking/staking.algo.ts:503-510
+    // smart_contracts/staking/staking.algo.ts:554-561
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -2986,11 +3342,11 @@ deleteApplication:
     //   })
     intc_3 // 4
     itxn_field TypeEnum
-    // smart_contracts/staking/staking.algo.ts:509
+    // smart_contracts/staking/staking.algo.ts:560
     // fee: 0,
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/staking/staking.algo.ts:503-511
+    // smart_contracts/staking/staking.algo.ts:554-562
     // itxn
     //   .assetTransfer({
     //     xferAsset: this.reward_asset_id.value.asUint64(),
@@ -3003,7 +3359,7 @@ deleteApplication:
     itxn_submit
 
 deleteApplication_after_if_else@5:
-    // smart_contracts/staking/staking.algo.ts:487
+    // smart_contracts/staking/staking.algo.ts:538
     // @abimethod({ allowActions: "DeleteApplication" })
     intc_1 // 1
     return
@@ -3011,119 +3367,125 @@ deleteApplication_after_if_else@5:
 
 // smart_contracts/staking/staking.algo.ts::Staking.updatePool() -> void:
 updatePool:
-    // smart_contracts/staking/staking.algo.ts:265
+    // smart_contracts/staking/staking.algo.ts:291
     // private updatePool(): void {
     proto 0 0
     pushbytes ""
-    dupn 7
-    // smart_contracts/staking/staking.algo.ts:266
+    dupn 5
+    // smart_contracts/staking/staking.algo.ts:292
     // if (this.contract_state.value === new Uint64(0)) {
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:47
+    // smart_contracts/staking/staking.algo.ts:48
     // contract_state = GlobalState<Uint64>(); // 0 = inactive, 1 = active
-    bytec 7 // "contract_state"
-    // smart_contracts/staking/staking.algo.ts:266
+    bytec 9 // "contract_state"
+    // smart_contracts/staking/staking.algo.ts:292
     // if (this.contract_state.value === new Uint64(0)) {
     app_global_get_ex
     assert // check GlobalState exists
     bytec_0 // 0x0000000000000000
     ==
     bz updatePool_after_if_else@2
-    // smart_contracts/staking/staking.algo.ts:267
+    // smart_contracts/staking/staking.algo.ts:293
     // return;
     retsub
 
 updatePool_after_if_else@2:
-    // smart_contracts/staking/staking.algo.ts:270
+    // smart_contracts/staking/staking.algo.ts:296
     // const now: uint64 = Global.latestTimestamp;
     global LatestTimestamp
     dup
-    frame_bury 4
-    // smart_contracts/staking/staking.algo.ts:271
-    // const end: uint64 = this.end_time.value.asUint64();
-    intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:36
-    // end_time = GlobalState<Uint64>();
-    bytec 16 // "end_time"
-    // smart_contracts/staking/staking.algo.ts:271
-    // const end: uint64 = this.end_time.value.asUint64();
-    app_global_get_ex
-    assert // check GlobalState exists
-    btoi
     frame_bury 2
-    // smart_contracts/staking/staking.algo.ts:272
+    // smart_contracts/staking/staking.algo.ts:297
     // const start: uint64 = this.start_time.value.asUint64();
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:35
     // start_time = GlobalState<Uint64>();
-    bytec 18 // "start_time"
-    // smart_contracts/staking/staking.algo.ts:272
+    bytec 20 // "start_time"
+    // smart_contracts/staking/staking.algo.ts:297
     // const start: uint64 = this.start_time.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    frame_bury 7
-    // smart_contracts/staking/staking.algo.ts:273
+    frame_bury 5
+    // smart_contracts/staking/staking.algo.ts:298
     // const last: uint64 = this.last_update_time.value.asUint64();
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:37
+    // smart_contracts/staking/staking.algo.ts:36
     // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:273
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:298
     // const last: uint64 = this.last_update_time.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     dup
-    frame_bury 3
-    // smart_contracts/staking/staking.algo.ts:275
+    frame_bury 1
+    // smart_contracts/staking/staking.algo.ts:300
     // if (now <= last) {
     <=
     bz updatePool_after_if_else@4
-    // smart_contracts/staking/staking.algo.ts:276
+    // smart_contracts/staking/staking.algo.ts:301
     // return;
     retsub
 
 updatePool_after_if_else@4:
-    // smart_contracts/staking/staking.algo.ts:279
-    // const cappedTime: uint64 = now < end ? now : end;
-    frame_dig 4
-    dup
-    frame_dig 2
-    dup
-    cover 2
-    <
-    swap
-    cover 2
-    select
-    dup
-    frame_bury 0
-    // smart_contracts/staking/staking.algo.ts:280
-    // if (cappedTime <= start) {
-    frame_dig 7
-    <=
+    // smart_contracts/staking/staking.algo.ts:304
+    // if (this.rewards_exhausted.value.asUint64() === 1) {
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:304
+    // if (this.rewards_exhausted.value.asUint64() === 1) {
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    intc_1 // 1
+    ==
     bz updatePool_after_if_else@6
-    // smart_contracts/staking/staking.algo.ts:281
-    // this.last_update_time.value = new Uint64(cappedTime);
-    frame_dig 0
+    // smart_contracts/staking/staking.algo.ts:305
+    // this.last_update_time.value = new Uint64(now);
+    frame_dig 2
     itob
-    // smart_contracts/staking/staking.algo.ts:37
+    // smart_contracts/staking/staking.algo.ts:36
     // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:281
-    // this.last_update_time.value = new Uint64(cappedTime);
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:305
+    // this.last_update_time.value = new Uint64(now);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:282
+    // smart_contracts/staking/staking.algo.ts:306
     // return;
     retsub
 
 updatePool_after_if_else@6:
-    // smart_contracts/staking/staking.algo.ts:285
+    // smart_contracts/staking/staking.algo.ts:310
+    // if (cappedTime <= start) {
+    frame_dig 2
+    frame_dig 5
+    <=
+    bz updatePool_after_if_else@8
+    // smart_contracts/staking/staking.algo.ts:311
+    // this.last_update_time.value = new Uint64(cappedTime);
+    frame_dig 2
+    itob
+    // smart_contracts/staking/staking.algo.ts:36
+    // last_update_time = GlobalState<Uint64>();
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:311
+    // this.last_update_time.value = new Uint64(cappedTime);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:312
+    // return;
+    retsub
+
+updatePool_after_if_else@8:
+    // smart_contracts/staking/staking.algo.ts:315
     // const effectiveLast: uint64 = last < start ? start : last;
-    frame_dig 3
+    frame_dig 1
     dup
-    frame_dig 7
+    frame_dig 5
     dup
     cover 3
     <
@@ -3131,88 +3493,88 @@ updatePool_after_if_else@6:
     cover 2
     select
     dup
-    frame_bury 1
-    // smart_contracts/staking/staking.algo.ts:286
+    frame_bury 0
+    // smart_contracts/staking/staking.algo.ts:316
     // if (cappedTime <= effectiveLast) {
-    frame_dig 0
+    frame_dig 2
     >=
-    bz updatePool_after_if_else@8
-    // smart_contracts/staking/staking.algo.ts:287
+    bz updatePool_after_if_else@10
+    // smart_contracts/staking/staking.algo.ts:317
     // this.last_update_time.value = new Uint64(cappedTime);
-    frame_dig 0
+    frame_dig 2
     itob
-    // smart_contracts/staking/staking.algo.ts:37
+    // smart_contracts/staking/staking.algo.ts:36
     // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:287
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:317
     // this.last_update_time.value = new Uint64(cappedTime);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:288
-    // return;
-    retsub
-
-updatePool_after_if_else@8:
-    // smart_contracts/staking/staking.algo.ts:291
-    // if (this.total_staked.value.asUint64() === 0) {
-    intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:31
-    // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:291
-    // if (this.total_staked.value.asUint64() === 0) {
-    app_global_get_ex
-    assert // check GlobalState exists
-    btoi
-    bnz updatePool_after_if_else@10
-    // smart_contracts/staking/staking.algo.ts:292
-    // this.last_update_time.value = new Uint64(cappedTime);
-    frame_dig 0
-    itob
-    // smart_contracts/staking/staking.algo.ts:37
-    // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:292
-    // this.last_update_time.value = new Uint64(cappedTime);
-    swap
-    app_global_put
-    // smart_contracts/staking/staking.algo.ts:293
+    // smart_contracts/staking/staking.algo.ts:318
     // return;
     retsub
 
 updatePool_after_if_else@10:
-    // smart_contracts/staking/staking.algo.ts:296
+    // smart_contracts/staking/staking.algo.ts:321
+    // if (this.total_staked.value.asUint64() === 0) {
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:31
+    // total_staked = GlobalState<Uint64>();
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:321
+    // if (this.total_staked.value.asUint64() === 0) {
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    bnz updatePool_after_if_else@12
+    // smart_contracts/staking/staking.algo.ts:322
+    // this.last_update_time.value = new Uint64(cappedTime);
+    frame_dig 2
+    itob
+    // smart_contracts/staking/staking.algo.ts:36
+    // last_update_time = GlobalState<Uint64>();
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:322
+    // this.last_update_time.value = new Uint64(cappedTime);
+    swap
+    app_global_put
+    // smart_contracts/staking/staking.algo.ts:323
+    // return;
+    retsub
+
+updatePool_after_if_else@12:
+    // smart_contracts/staking/staking.algo.ts:326
     // const duration: uint64 = cappedTime - effectiveLast;
+    frame_dig 2
     frame_dig 0
-    frame_dig 1
     -
-    // smart_contracts/staking/staking.algo.ts:297
+    // smart_contracts/staking/staking.algo.ts:327
     // let rewardRate: uint64 = this.reward_rate.value.asUint64();
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:34
     // reward_rate = GlobalState<Uint64>();
-    bytec 17 // "reward_rate"
-    // smart_contracts/staking/staking.algo.ts:297
+    bytec 19 // "reward_rate"
+    // smart_contracts/staking/staking.algo.ts:327
     // let rewardRate: uint64 = this.reward_rate.value.asUint64();
     app_global_get_ex
     bury 1
     assert // check GlobalState exists
-    // smart_contracts/staking/staking.algo.ts:298
+    // smart_contracts/staking/staking.algo.ts:328
     // const annualReward = mulDivW(this.total_staked.value.asUint64(), this.apr_bps.value.asUint64(), 10_000);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:298
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:328
     // const annualReward = mulDivW(this.total_staked.value.asUint64(), this.apr_bps.value.asUint64(), 10_000);
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:41
+    // smart_contracts/staking/staking.algo.ts:40
     // apr_bps = GlobalState<Uint64>();
-    bytec 19 // "apr_bps"
-    // smart_contracts/staking/staking.algo.ts:298
+    bytec 21 // "apr_bps"
+    // smart_contracts/staking/staking.algo.ts:328
     // const annualReward = mulDivW(this.total_staked.value.asUint64(), this.apr_bps.value.asUint64(), 10_000);
     app_global_get_ex
     assert // check GlobalState exists
@@ -3220,102 +3582,115 @@ updatePool_after_if_else@10:
     // smart_contracts/staking/config.algo.ts:28
     // const [hi, lo] = mulw(a, b);
     mulw
-    // smart_contracts/staking/staking.algo.ts:298
+    // smart_contracts/staking/staking.algo.ts:328
     // const annualReward = mulDivW(this.total_staked.value.asUint64(), this.apr_bps.value.asUint64(), 10_000);
     intc 5 // 10000
     // smart_contracts/staking/config.algo.ts:29
     // return divw(hi, lo, c);
     divw
-    // smart_contracts/staking/staking.algo.ts:299
+    // smart_contracts/staking/staking.algo.ts:329
     // rewardRate = annualReward / SECONDS_PER_YEAR;
     pushint 31536000 // 31536000
     /
-    // smart_contracts/staking/staking.algo.ts:301
+    // smart_contracts/staking/staking.algo.ts:331
     // let reward: uint64 = duration * rewardRate;
     *
     dup
-    frame_bury 6
-    // smart_contracts/staking/staking.algo.ts:302
+    frame_bury 4
+    // smart_contracts/staking/staking.algo.ts:332
     // const remaining: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:39
+    // smart_contracts/staking/staking.algo.ts:38
     // total_rewards = GlobalState<Uint64>();
-    bytec 14 // "total_rewards"
-    // smart_contracts/staking/staking.algo.ts:302
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:332
     // const remaining: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:40
+    // smart_contracts/staking/staking.algo.ts:39
     // accrued_rewards = GlobalState<Uint64>();
-    bytec 13 // "accrued_rewards"
-    // smart_contracts/staking/staking.algo.ts:302
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:332
     // const remaining: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     app_global_get_ex
     assert // check GlobalState exists
     btoi
     -
     dup
-    frame_bury 5
-    // smart_contracts/staking/staking.algo.ts:303
+    frame_bury 3
+    // smart_contracts/staking/staking.algo.ts:333
     // if (reward > remaining) {
     >
-    bz updatePool_after_if_else@12
-    frame_dig 5
-    frame_bury 6
+    bz updatePool_after_if_else@14
+    frame_dig 3
+    frame_bury 4
 
-updatePool_after_if_else@12:
-    // smart_contracts/staking/staking.algo.ts:306
+updatePool_after_if_else@14:
+    // smart_contracts/staking/staking.algo.ts:336
     // if (reward === 0) {
-    frame_dig 6
-    bnz updatePool_after_if_else@14
-    // smart_contracts/staking/staking.algo.ts:307
+    frame_dig 4
+    bnz updatePool_after_if_else@18
+    // smart_contracts/staking/staking.algo.ts:337
+    // if (remaining === 0) {
+    frame_dig 3
+    bnz updatePool_after_if_else@17
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:338
+    // this.rewards_exhausted.value = new Uint64(1);
+    bytec 17 // 0x0000000000000001
+    app_global_put
+
+updatePool_after_if_else@17:
+    // smart_contracts/staking/staking.algo.ts:340
     // this.last_update_time.value = new Uint64(cappedTime);
-    frame_dig 0
+    frame_dig 2
     itob
-    // smart_contracts/staking/staking.algo.ts:37
+    // smart_contracts/staking/staking.algo.ts:36
     // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:307
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:340
     // this.last_update_time.value = new Uint64(cappedTime);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:308
+    // smart_contracts/staking/staking.algo.ts:341
     // return;
     retsub
 
-updatePool_after_if_else@14:
-    // smart_contracts/staking/staking.algo.ts:311
+updatePool_after_if_else@18:
+    // smart_contracts/staking/staking.algo.ts:344
     // this.accrued_rewards.value = new Uint64(this.accrued_rewards.value.asUint64() + reward);
     intc_0 // 0
-    // smart_contracts/staking/staking.algo.ts:40
+    // smart_contracts/staking/staking.algo.ts:39
     // accrued_rewards = GlobalState<Uint64>();
-    bytec 13 // "accrued_rewards"
-    // smart_contracts/staking/staking.algo.ts:311
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:344
     // this.accrued_rewards.value = new Uint64(this.accrued_rewards.value.asUint64() + reward);
     app_global_get_ex
     assert // check GlobalState exists
     btoi
-    frame_dig 6
+    frame_dig 4
     dup
     cover 2
     +
     itob
-    // smart_contracts/staking/staking.algo.ts:40
+    // smart_contracts/staking/staking.algo.ts:39
     // accrued_rewards = GlobalState<Uint64>();
-    bytec 13 // "accrued_rewards"
-    // smart_contracts/staking/staking.algo.ts:311
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:344
     // this.accrued_rewards.value = new Uint64(this.accrued_rewards.value.asUint64() + reward);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:312
+    // smart_contracts/staking/staking.algo.ts:345
     // const deltaRPT = mulDivW(reward, PRECISION, this.total_staked.value.asUint64());
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:31
     // total_staked = GlobalState<Uint64>();
-    bytec_3 // "total_staked"
-    // smart_contracts/staking/staking.algo.ts:312
+    bytec 6 // "total_staked"
+    // smart_contracts/staking/staking.algo.ts:345
     // const deltaRPT = mulDivW(reward, PRECISION, this.total_staked.value.asUint64());
     app_global_get_ex
     assert // check GlobalState exists
@@ -3327,7 +3702,7 @@ updatePool_after_if_else@14:
     // smart_contracts/staking/config.algo.ts:28
     // const [hi, lo] = mulw(a, b);
     swap
-    // smart_contracts/staking/staking.algo.ts:312
+    // smart_contracts/staking/staking.algo.ts:345
     // const deltaRPT = mulDivW(reward, PRECISION, this.total_staked.value.asUint64());
     intc 4 // 1000000000000000
     // smart_contracts/staking/config.algo.ts:28
@@ -3337,13 +3712,13 @@ updatePool_after_if_else@14:
     // return divw(hi, lo, c);
     uncover 2
     divw
-    // smart_contracts/staking/staking.algo.ts:313
+    // smart_contracts/staking/staking.algo.ts:346
     // this.reward_per_token.value = new Uint64(this.reward_per_token.value.asUint64() + deltaRPT);
     intc_0 // 0
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:313
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:346
     // this.reward_per_token.value = new Uint64(this.reward_per_token.value.asUint64() + deltaRPT);
     app_global_get_ex
     assert // check GlobalState exists
@@ -3352,20 +3727,51 @@ updatePool_after_if_else@14:
     itob
     // smart_contracts/staking/staking.algo.ts:32
     // reward_per_token = GlobalState<Uint64>();
-    bytec 6 // "reward_per_token"
-    // smart_contracts/staking/staking.algo.ts:313
+    bytec 8 // "reward_per_token"
+    // smart_contracts/staking/staking.algo.ts:346
     // this.reward_per_token.value = new Uint64(this.reward_per_token.value.asUint64() + deltaRPT);
     swap
     app_global_put
-    // smart_contracts/staking/staking.algo.ts:314
+    // smart_contracts/staking/staking.algo.ts:347
     // this.last_update_time.value = new Uint64(cappedTime);
-    frame_dig 0
+    frame_dig 2
     itob
-    // smart_contracts/staking/staking.algo.ts:37
+    // smart_contracts/staking/staking.algo.ts:36
     // last_update_time = GlobalState<Uint64>();
-    bytec 8 // "last_update_time"
-    // smart_contracts/staking/staking.algo.ts:314
+    bytec 10 // "last_update_time"
+    // smart_contracts/staking/staking.algo.ts:347
     // this.last_update_time.value = new Uint64(cappedTime);
     swap
     app_global_put
+    // smart_contracts/staking/staking.algo.ts:348
+    // if (this.accrued_rewards.value.asUint64() === this.total_rewards.value.asUint64()) {
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:39
+    // accrued_rewards = GlobalState<Uint64>();
+    bytec 7 // "accrued_rewards"
+    // smart_contracts/staking/staking.algo.ts:348
+    // if (this.accrued_rewards.value.asUint64() === this.total_rewards.value.asUint64()) {
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    intc_0 // 0
+    // smart_contracts/staking/staking.algo.ts:38
+    // total_rewards = GlobalState<Uint64>();
+    bytec 12 // "total_rewards"
+    // smart_contracts/staking/staking.algo.ts:348
+    // if (this.accrued_rewards.value.asUint64() === this.total_rewards.value.asUint64()) {
+    app_global_get_ex
+    assert // check GlobalState exists
+    btoi
+    ==
+    bz updatePool_after_if_else@20
+    // smart_contracts/staking/staking.algo.ts:41
+    // rewards_exhausted = GlobalState<Uint64>();
+    bytec 11 // "rewards_exhausted"
+    // smart_contracts/staking/staking.algo.ts:349
+    // this.rewards_exhausted.value = new Uint64(1);
+    bytec 17 // 0x0000000000000001
+    app_global_put
+
+updatePool_after_if_else@20:
     retsub
