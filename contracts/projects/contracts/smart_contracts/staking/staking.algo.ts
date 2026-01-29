@@ -134,6 +134,22 @@ export class Staking extends Contract {
   }
 
   @abimethod({ allowActions: "NoOp" })
+  removeRewards(): void {
+    assert(op.Txn.sender === this.admin_address.value, "Only admin can fund rewards");
+    assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
+
+    const available: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
+    assert(available > 0, "No rewards to remove");
+    itxn.assetTransfer({
+      xferAsset: this.reward_asset_id.value.asUint64(),
+      assetReceiver: this.admin_address.value,
+      sender: Global.currentApplicationAddress,
+      assetAmount: available,
+      fee: 0,
+    }).submit();
+  }
+
+  @abimethod({ allowActions: "NoOp" })
   setContractActive(): void {
     assert(op.Txn.sender === this.admin_address.value, "Only admin can set active");
     const superAdminResult = abiCall({
@@ -322,7 +338,7 @@ export class Staking extends Contract {
       itxn
         .payment({
           receiver: op.Txn.sender,
-          amount: mbrTxn.amount,
+          amount: BOX_FEE,
           sender: Global.currentApplicationAddress,
           fee: 0,
         })

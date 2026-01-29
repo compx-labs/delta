@@ -742,4 +742,78 @@ describe("staking pools Testing - main flow", () => {
     expect(finalState.totalStaked).toEqual(0n);
     expect(finalState.numStakers).toEqual(0n);
   });
+
+  test("removeRewards admin-only and returns remaining rewards", async () => {
+    const removePool = await deploy(poolAdmin, masterRepoClient.appId);
+    removePool.algorand.setSignerFromAccount(poolAdmin);
+
+    const initialBalanceTxn = removePool.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: removePool.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "initial mbr - remove rewards",
+      maxFee: MAX_FEE,
+    });
+
+    const rewardFundingTxn = removePool.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: removePool.appClient.appAddress,
+      assetId: rewardAssetId,
+      amount: REWARD_AMOUNT,
+      note: "reward funding - remove rewards",
+      maxFee: MAX_FEE,
+    });
+
+    await removePool.send.initApplication({
+      args: {
+        stakedAssetId,
+        rewardAssetId,
+        rewardAmount: REWARD_AMOUNT,
+        aprBps: 10_200n,
+        startTime: 0n,
+        duration: DURATION,
+        initialBalanceTxn,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await removePool.send.fundRewards({
+      args: {
+        rewardFundingTxn,
+        rewardAmount: REWARD_AMOUNT,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const outsider = await localnet.context.generateAccount({ initialFunds: microAlgo(2_000_000) });
+    removePool.algorand.setSignerFromAccount(outsider);
+    await expect(
+      removePool.send.removeRewards({
+        args: {},
+        sender: outsider.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    removePool.algorand.setSignerFromAccount(poolAdmin);
+    const adminAddr = algosdk.encodeAddress(poolAdmin.addr.publicKey);
+    const before = await getAssetBalance(adminAddr, rewardAssetId);
+
+    await removePool.send.removeRewards({
+      args: {},
+      sender: poolAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const after = await getAssetBalance(adminAddr, rewardAssetId);
+    expect(after - before).toEqual(REWARD_AMOUNT);
+  });
 });
