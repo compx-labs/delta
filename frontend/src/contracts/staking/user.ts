@@ -158,6 +158,27 @@ export interface FundRewardsParams {
 }
 
 /**
+ * Parameters for funding more rewards to a staking pool (admin only)
+ */
+export interface FundMoreRewardsParams {
+  address: string;
+  signer: TransactionSigner;
+  appId: number;
+  rewardAssetId: number;
+  rewardAmount: number;
+  rewardAssetDecimals?: number;
+}
+
+/**
+ * Parameters for removing rewards from a staking pool (admin only)
+ */
+export interface RemoveRewardsParams {
+  address: string;
+  signer: TransactionSigner;
+  appId: number;
+}
+
+/**
  * Creates a new staking pool application
  */
 export async function createPool({
@@ -409,6 +430,85 @@ export async function fundRewards({
 }
 
 /**
+ * Funds more rewards to a staking pool (admin only)
+ * This adds additional rewards to an existing pool
+ */
+export async function fundMoreRewards({
+  address,
+  signer,
+  appId,
+  rewardAssetId,
+  rewardAmount,
+  rewardAssetDecimals = 6,
+}: FundMoreRewardsParams): Promise<string> {
+  try {
+    const appClient = await getStakingClient(signer, address, appId);
+    appClient.algorand.setDefaultSigner(signer);
+
+    const upscaledRewardAmount = Math.floor(rewardAmount * 10 ** rewardAssetDecimals);
+
+    // Create asset transfer transaction for funding more rewards
+    const rewardFundingTxn = appClient.algorand.createTransaction.assetTransfer({
+      sender: address,
+      receiver: appClient.appAddress,
+      assetId: BigInt(rewardAssetId),
+      amount: BigInt(upscaledRewardAmount),
+      note: "Funding more rewards",
+      maxFee: MAX_FEE,
+    });
+
+    const result = await appClient
+      .newGroup()
+      .fundMoreRewards({
+        args: {
+          rewardFundingTxn,
+          rewardAmount: BigInt(upscaledRewardAmount),
+        },
+        sender: address,
+        maxFee: MAX_FEE,
+      })
+      .send({
+        suppressLog: false,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+      });
+
+    return result.txIds[0];
+  } catch (error) {
+    console.error("Fund more rewards failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * Removes rewards from a staking pool (admin only)
+ * This allows the admin to withdraw unclaimed rewards
+ */
+export async function removeRewards({
+  address,
+  signer,
+  appId,
+}: RemoveRewardsParams): Promise<string> {
+  try {
+    const appClient = await getStakingClient(signer, address, appId);
+    appClient.algorand.setDefaultSigner(signer);
+
+    const output = await appClient.send.removeRewards({
+      args: [],
+      sender: address,
+      maxFee: MAX_FEE,
+      populateAppCallResources: true,
+      coverAppCallInnerTransactionFees: true,
+    });
+
+    return output.txIds[0];
+  } catch (error) {
+    console.error("Remove rewards failed:", error);
+    return '';
+  }
+}
+
+/**
  * Activates a staking pool
  */
 export async function setContractActive({
@@ -440,6 +540,42 @@ export async function setContractActive({
     return result.txIds[0];
   } catch (error) {
     console.error("Set contract active failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * Deactivates a staking pool (admin only)
+ */
+export async function setContractInactive({
+  address,
+  signer,
+  appId,
+}: {
+  address: string;
+  signer: TransactionSigner;
+  appId: number;
+}): Promise<string> {
+  try {
+    const appClient = await getStakingClient(signer, address, appId);
+    appClient.algorand.setDefaultSigner(signer);
+
+    const result = await appClient
+      .newGroup()
+      .setContractInactive({
+        args: [],
+        sender: address,
+        maxFee: MAX_FEE,
+      })
+      .send({
+        suppressLog: false,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+      });
+
+    return result.txIds[0];
+  } catch (error) {
+    console.error("Set contract inactive failed:", error);
     throw error;
   }
 }
@@ -588,3 +724,5 @@ export async function claimRewards({
     throw error;
   }
 }
+
+

@@ -9,6 +9,7 @@ import { Dropdown } from '../components/Dropdown'
 import { AnimButton } from '../components/AnimButton'
 import { usePools } from '../context/poolsContext'
 import { useNetwork } from '../context/networkContext'
+import { usePricing } from '../context/pricingContext'
 import { fetchMultipleAssetInfo } from '../utils/assetUtils'
 import { getAllPools } from '../services/poolApiService'
 import type { PoolListItem } from '../types/pool'
@@ -17,6 +18,7 @@ import type { PoolFilters } from '../types/pool'
 export function PoolsPage() {
   const navigate = useNavigate()
   const { networkConfig } = useNetwork()
+  const { getUsdValue } = usePricing()
   const { 
     poolStates, 
     isLoadingMasterRepo, 
@@ -98,13 +100,14 @@ export function PoolsPage() {
       const isActive = 
         state.contractState === BigInt(1) && // Active state
         state.startTime && state.startTime <= now &&
-        state.endTime && state.endTime > now
+        state.rewardsExhausted !== BigInt(1) // Rewards not exhausted
 
       const status: 'active' | 'inactive' = isActive ? 'active' : 'inactive'
 
-      // Calculate TVL (Total Value Locked) - simplified for now
-      // In a real implementation, you'd need to get asset prices
-      const tvlUsd = state.totalStaked ? Number(state.totalStaked) / 1_000_000 : null // Simplified
+      // Calculate TVL (Total Value Locked) using pricing context
+      const tvlUsd = state.totalStaked && stakedAssetInfo
+        ? getUsdValue(state.totalStaked, state.stakedAssetId.toString(), stakedAssetInfo.decimals)
+        : null
 
       // Create display name - just show the token to be staked
       const stakedSymbol = stakedAssetInfo?.symbol || `Asset ${state.stakedAssetId}`
@@ -142,7 +145,7 @@ export function PoolsPage() {
     })
 
     return poolList
-  }, [poolStates, assetInfoMap, poolMetadataMap])
+  }, [poolStates, assetInfoMap, poolMetadataMap, getUsdValue])
 
   // Apply filters
   const filteredPools = useMemo(() => {
@@ -291,18 +294,6 @@ export function PoolsPage() {
               pools={filteredPools}
               onSelectPool={handleSelectPool}
             />
-          </motion.div>
-        )}
-
-        {/* Empty state */}
-        {filteredPools.length === 0 && !loading && !masterRepoError && !poolsError && (
-          <motion.div
-            className="py-16 text-center text-mid-grey"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            No pools available. Pools will appear here once incentive programs are created.
           </motion.div>
         )}
       </div>

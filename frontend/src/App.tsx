@@ -11,6 +11,7 @@ import { CreatePage } from "./pages/CreatePage";
 import { ManagePage } from "./pages/ManagePage";
 import { DocsPage } from "./pages/DocsPage";
 import { ToastProvider } from "./context/toastContext";
+import { PricingProvider } from "./context/pricingContext";
 import { Toast } from "./components/Toast";
 
 function App() {
@@ -19,8 +20,9 @@ function App() {
       <ExplorerProvider>
         <ToastProvider>
           <Toast />
-          <PoolsProvider>
-            <WalletContextProvider>
+          <PricingProvider>
+            <PoolsProvider>
+              <WalletContextProvider>
               <WalletConnectionModal />
               <BrowserRouter>
                 <Routes>
@@ -32,8 +34,9 @@ function App() {
                   <Route path="/docs" element={<DocsPage />} />
                 </Routes>
               </BrowserRouter>
-            </WalletContextProvider>
-          </PoolsProvider>
+              </WalletContextProvider>
+            </PoolsProvider>
+          </PricingProvider>
         </ToastProvider>
       </ExplorerProvider>
     </Providers>

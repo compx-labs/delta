@@ -216,15 +216,36 @@ const mockManagePoolDetails: Record<string, ManagePoolDetail> = {
 export async function getPoolsCreatedBy(
   address: string,
   poolStates?: Map<string, StakingPoolState>,
-  assetInfoMap?: Map<string, { symbol: string; decimals?: number }>
+  assetInfoMap?: Map<string, { symbol: string; decimals?: number }>,
+  registeredAppIds?: bigint[]
 ): Promise<ManagePoolListItem[]> {
   try {
     // Fetch pools from API and filter by creator address
     const allPools = await getAllPools()
     const userPools = allPools.filter(pool => pool.created_by === address)
     
+    // Filter to only include pools that are registered in the registry contract
+    // The registry contract is the source of truth
+    const registeredAppIdsSet = registeredAppIds 
+      ? new Set(registeredAppIds.map(id => id.toString()))
+      : new Set<string>()
+    
+    // If poolStates is provided, use it as the source of truth (it only contains registered pools)
+    // Otherwise, check against registeredAppIds
+    const registeredUserPools = userPools.filter((pool: Pool) => {
+      if (!pool.app_id) return false // Must have an app_id
+      
+      // If poolStates is provided, check if the pool exists in it
+      if (poolStates) {
+        return poolStates.has(pool.app_id.toString())
+      }
+      
+      // Otherwise, check against registeredAppIds
+      return registeredAppIdsSet.has(pool.app_id.toString())
+    })
+    
     // Transform API pools to ManagePoolListItem format
-    return userPools.map((pool: Pool): ManagePoolListItem => {
+    return registeredUserPools.map((pool: Pool): ManagePoolListItem => {
       const appIdStr = pool.app_id?.toString() || ''
       const poolState = poolStates?.get(appIdStr)
       
@@ -268,9 +289,11 @@ export async function getPoolsCreatedBy(
       const now = BigInt(Math.floor(Date.now() / 1000))
       const isActive = poolState?.contractState === BigInt(1) &&
         poolState.startTime && poolState.startTime <= now &&
-        poolState.endTime && poolState.endTime > now &&
         pool.creation_status === 'completed'
       const status: 'active' | 'inactive' = isActive ? 'active' : 'inactive'
+
+      // Check if rewards are exhausted
+      const rewardsExhausted = poolState?.rewardsExhausted === BigInt(1)
 
       return {
         id: pool.id,
@@ -291,6 +314,7 @@ export async function getPoolsCreatedBy(
           symbol: assetInfoMap?.get(pool.reward_token)?.symbol || pool.reward_token, 
           id: pool.reward_token 
         }],
+        rewardsExhausted,
         creation_status: pool.creation_status,
         step_create_completed: pool.step_create_completed,
         step_init_completed: pool.step_init_completed,
@@ -305,10 +329,122 @@ export async function getPoolsCreatedBy(
   }
 }
 
-export async function getManagePoolDetail(poolId: string): Promise<ManagePoolDetail | null> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300))
-  
-  return mockManagePoolDetails[poolId] || null
+export async function getManagePoolDetail(
+  poolId: string,
+  poolStates?: Map<string, StakingPoolState>,
+  assetInfoMap?: Map<string, { symbol: string; decimals?: number }>,
+  registeredAppIds?: bigint[]
+): Promise<ManagePoolDetail | null> {
+  try {
+    // Fetch pool from API
+    const { getPoolById } = await import('./poolApiService')
+    const pool = await getPoolById(poolId)
+    
+    // Verify pool is registered in the registry contract (source of truth)
+    if (pool.app_id) {
+      // If poolStates is provided but pool is not in it, the pool is not registered
+      if (poolStates && !poolStates.has(pool.app_id.toString())) {
+        return null // Pool not registered in contract
+      }
+      
+      // If registeredAppIds is provided but pool is not in it, the pool is not registered
+      if (registeredAppIds && !registeredAppIds.some(id => id.toString() === pool.app_id?.toString())) {
+        return null // Pool not registered in contract
+      }
+    }
+    
+    const appIdStr = pool.app_id?.toString() || ''
+    const poolState = poolStates?.get(appIdStr)
+    
+    // Calculate APR from pool state
+    const apr = poolState?.aprBps 
+      ? Number(poolState.aprBps) / 100 
+      : null
+
+    // Calculate remaining rewards
+    const rewardsRemaining: Array<{ symbol: string; amount: number }> = []
+    const totalRewards = poolState?.totalRewards
+    const accruedRewards = poolState?.accruedRewards || BigInt(0)
+    
+    if (totalRewards !== undefined && totalRewards !== null) {
+      const remaining = totalRewards - accruedRewards
+      const rewardAssetInfo = assetInfoMap?.get(pool.reward_token)
+      const decimals = rewardAssetInfo?.decimals || 6
+      const amount = Number(remaining) / (10 ** decimals)
+      
+      if (amount > 0) {
+        const symbol = rewardAssetInfo?.symbol || pool.reward_token
+        rewardsRemaining.push({ symbol, amount })
+      }
+    }
+
+    // Calculate expected end date
+    const rewardAssetInfo = assetInfoMap?.get(pool.reward_token)
+    const rewardAssetDecimals = rewardAssetInfo?.decimals || 6
+    const expectedEndDate = calculateExpectedEndDate(poolState, rewardAssetDecimals)
+
+    // Get stakers count
+    const stakers = poolState?.numStakers 
+      ? Number(poolState.numStakers) 
+      : 0
+
+    // Determine status
+    const now = BigInt(Math.floor(Date.now() / 1000))
+    const isActive = poolState?.contractState === BigInt(1) &&
+      poolState.startTime && poolState.startTime <= now &&
+      pool.creation_status === 'completed'
+    const status: 'active' | 'inactive' = isActive ? 'active' : 'inactive'
+
+    // Check if rewards are exhausted
+    const rewardsExhausted = poolState?.rewardsExhausted === BigInt(1)
+
+    // Get start time from pool state
+    const startTime = poolState?.startTime 
+      ? new Date(Number(poolState.startTime) * 1000).toISOString()
+      : null
+
+    return {
+      id: pool.id,
+      displayName: pool.name || `Pool ${pool.id.slice(0, 8)}`,
+      type: 'single', // Default type, could be enhanced with additional field
+      status,
+      stakers,
+      apr,
+      apy: null,
+      rewardsRemaining,
+      endDate: expectedEndDate,
+      createdAt: pool.created_at,
+      stakeAsset: { 
+        symbol: assetInfoMap?.get(pool.stake_token)?.symbol || pool.stake_token, 
+        id: pool.stake_token 
+      },
+      rewardAssets: [{ 
+        symbol: assetInfoMap?.get(pool.reward_token)?.symbol || pool.reward_token, 
+        id: pool.reward_token 
+      }],
+      rewardsExhausted,
+      creation_status: pool.creation_status,
+      step_create_completed: pool.step_create_completed,
+      step_init_completed: pool.step_init_completed,
+      step_fund_activate_register_completed: pool.step_fund_activate_register_completed,
+      app_id: pool.app_id,
+      creator: pool.created_by,
+      contractRef: { 
+        appId: pool.app_id?.toString() 
+      },
+      schedule: {
+        startTime,
+        endTime: null, // No longer used, calculated from rewards
+      },
+      // Include metadata fields
+      name: pool.name,
+      website_url: pool.website_url,
+      description: pool.description,
+      tags: pool.tags,
+    }
+  } catch (error) {
+    console.error('Failed to fetch pool detail:', error)
+    return null
+  }
 }
 

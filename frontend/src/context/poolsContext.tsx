@@ -24,6 +24,7 @@ export interface StakingPoolState {
   totalRewards?: bigint;
   accruedRewards?: bigint;
   aprBps?: bigint;
+  rewardsExhausted?: bigint;
   adminAddress?: string;
   superAdminAddress?: string;
   numStakers?: bigint;
@@ -128,6 +129,7 @@ async function fetchPoolState(
     totalRewards: globalState.totalRewards,
     accruedRewards: globalState.accruedRewards,
     aprBps: globalState.aprBps,
+    rewardsExhausted: globalState.rewardsExhausted,
     adminAddress: globalState.adminAddress,
     superAdminAddress: globalState.superAdminAddress,
     numStakers: globalState.numStakers,

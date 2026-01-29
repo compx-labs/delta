@@ -15,7 +15,7 @@ export function Toast() {
       case 'error':
         return <AlertCircle className="w-5 h-5 text-red-500" />
       case 'loading':
-        return <Loader2 className="w-5 h-5 text-amber animate-spin" />
+        return <Loader2 className="w-5 h-5 text-accent animate-spin" />
       case 'multi-step':
         return <Loader2 className="w-5 h-5 text-amber animate-spin" />
       default:
@@ -70,11 +70,15 @@ export function Toast() {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-off-white font-medium text-sm mb-1">
+                <h3 className={`font-medium text-sm mb-1 ${
+                  toast.type === 'loading' ? 'text-accent' : 'text-off-white'
+                }`}>
                   {toast.message}
                 </h3>
                 {toast.description && (
-                  <p className="text-mid-grey text-xs">
+                  <p className={`text-xs ${
+                    toast.type === 'loading' ? 'text-accent/80' : 'text-mid-grey'
+                  }`}>
                     {toast.description}
                   </p>
                 )}

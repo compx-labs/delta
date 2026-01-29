@@ -21,6 +21,9 @@ import type { PoolDetail } from '../types/pool'
 import { getPoolByAppId } from '../services/poolApiService'
 import { ExternalLink } from 'lucide-react'
 import { useExplorer } from '../context/explorerContext'
+import { useNFD } from '../hooks/useNFD'
+import { usePricing } from '../context/pricingContext'
+import { AddressDisplay } from '../components/AddressDisplay'
 
 type TabId = 'assets' | 'stakers' | 'contract' | 'metadata'
 
@@ -71,6 +74,7 @@ function ActionsPanel({
   isProcessing,
   currentStakedAmount,
 }: ActionsPanelProps) {
+  const { getUsdValue } = usePricing()
   const handleMax = () => {
     if (isWithdraw) {
       // Set to staked amount
@@ -98,18 +102,12 @@ function ActionsPanel({
     ? Math.max(0, currentStakedAmount - stakeAmount)
     : currentStakedAmount + stakeAmount
 
-  // Calculate USD value (simplified - using pool TVL ratio)
-  // In a real implementation, you'd fetch asset prices from an oracle or API
+  // Calculate USD value using pricing context
   const calculateUsdValue = (): number | null => {
-    if (!pool.tvlUsd || pool.tvlUsd === 0) {
-      return null // Can't calculate without TVL data
-    }
-    // Estimate price per token from TVL
-    // This is a simplified calculation - in production you'd use real price feeds
-    // We'll use a placeholder calculation based on TVL
-    // For now, we'll show null if we can't get accurate pricing
-    // In production, integrate with a price oracle like Flux or CoinGecko
-    return null // Placeholder - implement price feed integration
+    if (stakeAmount <= 0 || !pool.depositAsset.id) return null
+    const decimals = pool.depositAsset.decimals || 6
+    const stakeAmountBigInt = BigInt(Math.floor(stakeAmount * 10 ** decimals))
+    return getUsdValue(stakeAmountBigInt, pool.depositAsset.id, decimals)
   }
 
   const stakeUsdValue = stakeAmount > 0 ? calculateUsdValue() : null
@@ -270,6 +268,7 @@ export function PoolDetailPage() {
   const { poolStates, refetchPools } = usePools()
   const { assets: walletAssets, refetchBalances } = useWalletContext()
   const { openToast } = useToast()
+  const { getUsdValue } = usePricing()
   const queryClient = useQueryClient()
   const [depositAmount, setDepositAmount] = useState('')
   const [isWithdraw, setIsWithdraw] = useState(false)
@@ -416,8 +415,8 @@ export function PoolDetailPage() {
       type: poolType,
       status,
       apr,
-      tvlUsd: poolState.totalStaked 
-        ? Number(poolState.totalStaked) / (10 ** (stakedAssetInfo.decimals || 6))
+      tvlUsd: poolState.totalStaked && poolState.stakedAssetId
+        ? getUsdValue(poolState.totalStaked, poolState.stakedAssetId.toString(), stakedAssetInfo.decimals)
         : null,
       user: {
         stakedAmount,
@@ -453,7 +452,7 @@ export function PoolDetailPage() {
         appId: poolId,
       },
     }
-  }, [poolState, poolId, assetInfoMap, userStakingInfo])
+  }, [poolState, poolId, assetInfoMap, userStakingInfo, getUsdValue])
 
   // Get wallet balance for staked asset
   const walletBalance = useMemo(() => {
@@ -535,37 +534,8 @@ export function PoolDetailPage() {
   // Get explorer hook for generating links
   const { getExplorerUrl } = useExplorer()
 
-  // NFD lookup function for creator address
-  const getNFDForAddress = async (address: string): Promise<{ name: string } | null> => {
-    try {
-      const nfdURL = `https://api.nf.domains/nfd/address?address=${address}&limit=1&view=thumbnail`
-      const response = await fetch(nfdURL)
-      const data = await response.json()
-      
-      if (!data || !Array.isArray(data) || data.length !== 1) {
-        return null
-      }
-      
-      const nfdBlob = data[0]
-      if (!nfdBlob.depositAccount || nfdBlob.depositAccount !== address) {
-        return null
-      }
-      
-      return { name: nfdBlob.name }
-    } catch (error) {
-      console.error('NFD fetch error:', error)
-      return null
-    }
-  }
-
   // Fetch NFD for creator address
-  const { data: creatorNFD } = useQuery({
-    queryKey: ['creatorNFD', pool?.creator],
-    queryFn: () => pool?.creator ? getNFDForAddress(pool.creator) : null,
-    enabled: !!pool?.creator,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: false,
-  })
+  const { data: creatorNFD } = useNFD(pool?.creator)
 
   // Switch away from metadata tab if metadata becomes unavailable
   useEffect(() => {
@@ -999,7 +969,11 @@ export function PoolDetailPage() {
                 </div>
                 <StatItem
                   label="Total Deposited"
-                  value={pool.tvlUsd !== null && pool.tvlUsd > 0 ? `$${(pool.tvlUsd / 1000).toFixed(0)}K` : '--'}
+                  value={pool.tvlUsd !== null && pool.tvlUsd > 0 
+                    ? pool.tvlUsd >= 1000 
+                      ? `$${(pool.tvlUsd / 1000).toFixed(1)}K`
+                      : `$${pool.tvlUsd.toFixed(2)}`
+                    : '--'}
                   variant="dark"
                 />
                 <StatItem
@@ -1132,7 +1106,12 @@ export function PoolDetailPage() {
                         {depositTokenDetails?.creator_address && (
                           <div>
                             <div className="text-xs text-mid-grey mb-1">Creator Address</div>
-                            <div className="text-sm text-off-white font-mono break-all">{depositTokenDetails.creator_address}</div>
+                            <div className="text-sm text-off-white">
+                              <AddressDisplay 
+                                address={depositTokenDetails.creator_address}
+                                showExplorerLink={true}
+                              />
+                            </div>
                           </div>
                         )}
                         {(depositTokenDetails?.verification_details?.discord_url || depositTokenDetails?.verification_details?.telegram_url || depositTokenDetails?.verification_details?.twitter_username) && (
@@ -1241,7 +1220,12 @@ export function PoolDetailPage() {
                                 {rewardDetails?.creator_address && (
                                   <div>
                                     <div className="text-xs text-mid-grey mb-1">Creator Address</div>
-                                    <div className="text-sm text-off-white font-mono break-all">{rewardDetails.creator_address}</div>
+                                    <div className="text-sm text-off-white">
+                                      <AddressDisplay 
+                                        address={rewardDetails.creator_address}
+                                        showExplorerLink={true}
+                                      />
+                                    </div>
                                   </div>
                                 )}
                                 {(rewardDetails?.verification_details?.discord_url || rewardDetails?.verification_details?.telegram_url || rewardDetails?.verification_details?.twitter_username) && (
@@ -1374,8 +1358,12 @@ export function PoolDetailPage() {
                                   return (
                                     <tr key={staker.address} className="border-b border-mid-grey/20 hover:bg-mid-grey/5">
                                       <td className="px-4 py-3 text-sm text-off-white">{index + 1}</td>
-                                      <td className="px-4 py-3 text-sm text-off-white font-mono">
-                                        {staker.address.slice(0, 8)}...{staker.address.slice(-8)}
+                                      <td className="px-4 py-3 text-sm text-off-white">
+                                        <AddressDisplay 
+                                          address={staker.address} 
+                                          showExplorerLink={true}
+                                          truncate={true}
+                                        />
                                       </td>
                                       <td className="px-4 py-3 text-sm text-off-white text-right">
                                         {stakeAmount} {pool?.depositAsset.symbol || ''}
@@ -1487,7 +1475,12 @@ export function PoolDetailPage() {
                       {poolMetadata.created_by && (
                         <div>
                           <div className="text-xs text-mid-grey mb-1">Created By</div>
-                          <div className="text-sm text-off-white font-mono break-all">{poolMetadata.created_by}</div>
+                          <div className="text-sm text-off-white">
+                            <AddressDisplay 
+                              address={poolMetadata.created_by}
+                              showExplorerLink={true}
+                            />
+                          </div>
                         </div>
                       )}
                       {poolMetadata.created_at && (

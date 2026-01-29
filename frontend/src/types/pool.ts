@@ -67,6 +67,7 @@ export interface ManagePoolListItem {
   createdAt: string
   stakeAsset: { symbol: string; id: string }
   rewardAssets: Array<{ symbol: string; id: string }>
+  rewardsExhausted?: boolean
   // Creation tracking fields
   creation_status?: CreationStatus
   step_create_completed?: boolean
@@ -79,5 +80,10 @@ export interface ManagePoolDetail extends ManagePoolListItem {
   creator: string
   contractRef: { appId?: string; address?: string }
   schedule: { startTime: string | null; endTime: string | null }
+  // Metadata fields
+  name?: string
+  website_url?: string | null
+  description?: string | null
+  tags?: string[] | null
 }
 

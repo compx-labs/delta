@@ -174,6 +174,11 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
                       <StatusDot status={pool.status} />
                       <span className="text-sm text-mid-grey capitalize">{pool.status}</span>
                     </div>
+                    {pool.rewardsExhausted && (
+                      <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 inline-block mt-1">
+                        Rewards Exhausted
+                      </span>
+                    )}
                     {getCreationStatus(pool) && (
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-amber">
@@ -236,6 +241,11 @@ export function ManagePoolsTable({ pools, filters }: ManagePoolsTableProps) {
                     <StatusDot status={pool.status} />
                     <span className="font-medium text-off-white truncate">{pool.displayName}</span>
                   </div>
+                  {pool.rewardsExhausted && (
+                    <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 inline-block mt-1 mb-1">
+                      Rewards Exhausted
+                    </span>
+                  )}
                   {getCreationStatus(pool) && (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-amber">
