@@ -40,6 +40,7 @@ export class Staking extends Contract {
   apr_bps = GlobalState<Uint64>();
   rewards_exhausted = GlobalState<Uint64>();
   rewards_paid = GlobalState<Uint64>();
+  initialized = GlobalState<Uint64>();
 
   admin_address = GlobalState<Account>();
   super_admin_address = GlobalState<Account>();
@@ -59,6 +60,9 @@ export class Staking extends Contract {
     this.platform_fee_bps.value = new Uint64(0);
     this.platform_fees_accrued.value = new Uint64(0);
     this.rewards_paid.value = new Uint64(0);
+    this.initialized.value = new Uint64(0);
+    this.total_staked.value = new Uint64(0);
+    this.num_stakers.value = new Uint64(0);
   }
 
   @abimethod({ allowActions: "NoOp" })
@@ -72,6 +76,10 @@ export class Staking extends Contract {
     initialBalanceTxn: gtxn.PaymentTxn,
   ): void {
     assert(op.Txn.sender === this.admin_address.value, "Only admin can init application");
+    assert(this.initialized.value.asUint64() === 0, "Already initialized");
+    assert(this.contract_state.value.asUint64() === 0, "Pool must be inactive");
+    assert(this.total_staked.value.asUint64() === 0, "Staked assets still exist");
+    assert(this.num_stakers.value.asUint64() === 0, "Stakers exist");
     assert(rewardAmount > 0, "Invalid reward amount");
     assert(duration > 0, "Invalid duration");
     assert(aprBps > 0, "Invalid APR");
@@ -87,13 +95,12 @@ export class Staking extends Contract {
     this.start_time.value = new Uint64(start);
     this.last_update_time.value = new Uint64(start);
     this.reward_per_token.value = new Uint64(0);
-    this.total_staked.value = new Uint64(0);
-    this.num_stakers.value = new Uint64(0);
     this.accrued_rewards.value = new Uint64(0);
     this.apr_bps.value = new Uint64(aprBps);
     this.platform_fees_accrued.value = new Uint64(0);
     this.rewards_exhausted.value = new Uint64(0);
     this.rewards_paid.value = new Uint64(0);
+    this.initialized.value = new Uint64(1);
 
     assertMatch(initialBalanceTxn, {
       receiver: Global.currentApplicationAddress,
@@ -160,13 +167,15 @@ export class Staking extends Contract {
 
     const available: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     assert(available > 0, "No rewards to remove");
-    itxn.assetTransfer({
-      xferAsset: this.reward_asset_id.value.asUint64(),
-      assetReceiver: this.admin_address.value,
-      sender: Global.currentApplicationAddress,
-      assetAmount: available,
-      fee: 0,
-    }).submit();
+    itxn
+      .assetTransfer({
+        xferAsset: this.reward_asset_id.value.asUint64(),
+        assetReceiver: this.admin_address.value,
+        sender: Global.currentApplicationAddress,
+        assetAmount: available,
+        fee: 0,
+      })
+      .submit();
     this.rewards_exhausted.value = new Uint64(1);
   }
 
@@ -361,15 +370,13 @@ export class Staking extends Contract {
       xferAsset: Asset(this.staked_asset_id.value.asUint64()),
       assetAmount: quantity,
     });
-
+    assertMatch(mbrTxn, {
+      sender: op.Txn.sender,
+      receiver: Global.currentApplicationAddress,
+      amount: BOX_FEE,
+    });
     const exists = this.stakers(op.Txn.sender).exists;
-    if (!exists) {
-      assertMatch(mbrTxn, {
-        sender: op.Txn.sender,
-        receiver: Global.currentApplicationAddress,
-        amount: BOX_FEE,
-      });
-    } else {
+    if (exists) {
       // if the box record alreay exists, repay the box fee
       itxn
         .payment({
@@ -539,6 +546,13 @@ export class Staking extends Contract {
   deleteApplication(): void {
     assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can delete application");
     assert(this.total_staked.value.asUint64() === 0, "Staked assets still exist");
+    assert(this.num_stakers.value.asUint64() === 0, "Stakers exist");
+
+    const stakedBalance = op.AssetHolding.assetBalance(Global.currentApplicationAddress, Asset(this.staked_asset_id.value.asUint64()))[0];
+    assert(stakedBalance === 0, "Staked asset balance not empty");
+
+    const rewardBalance = op.AssetHolding.assetBalance(Global.currentApplicationAddress, Asset(this.reward_asset_id.value.asUint64()))[0];
+    assert(rewardBalance === 0, "Reward asset balance not empty");
 
     itxn
       .assetTransfer({
