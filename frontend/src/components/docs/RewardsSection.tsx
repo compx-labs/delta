@@ -40,7 +40,15 @@ export const RewardsSection: React.FC = () => {
 
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Pool Duration</h3>
         <p className="text-mid-grey mb-4 leading-relaxed">
-          Rewards only accrue between the pool's start and end time. Once the end time is reached, no new rewards will be distributed, though you can still claim any accumulated rewards you've earned.
+          Pool duration is determined by the amount of rewards funded and the pool's APR target. Pools run until rewards are exhausted, at which point they automatically stop accepting new stakes. The estimated end date is calculated dynamically based on:
+        </p>
+        <ul className="list-disc list-inside text-mid-grey space-y-2 mb-6">
+          <li>Remaining reward balance</li>
+          <li>Current total value locked (TVL)</li>
+          <li>The pool's fixed APR target</li>
+        </ul>
+        <p className="text-mid-grey mb-4 leading-relaxed">
+          Pool creators can extend a pool's duration by adding more rewards at any time. Once rewards are exhausted, no new rewards will be distributed, though you can still claim any accumulated rewards you've earned.
         </p>
 
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Claiming Rewards</h3>

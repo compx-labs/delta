@@ -32,13 +32,14 @@ export const ManageSection: React.FC = () => {
           For each pool, you can view:
         </p>
         <ul className="list-disc list-inside text-mid-grey space-y-2 mb-6">
-          <li>Pool ID and contract reference</li>
-          <li>Current status (active, inactive, scheduled)</li>
+          <li>Pool App ID (with explorer link)</li>
+          <li>Current status (active, inactive, rewards exhausted)</li>
           <li>Number of stakers</li>
           <li>Current APR</li>
           <li>Remaining rewards</li>
-          <li>Schedule start and end times</li>
-          <li>Creator address</li>
+          <li>Estimated end date (calculated from remaining rewards)</li>
+          <li>Creator address (with NFD lookup and explorer link)</li>
+          <li>Pool metadata (name, website, description, tags)</li>
         </ul>
 
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Filtering Pools</h3>
@@ -51,11 +52,22 @@ export const ManageSection: React.FC = () => {
           <li><strong>Search:</strong> Search by pool name or asset symbol</li>
         </ul>
 
-        <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Pool Management</h3>
+        <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Pool Management Actions</h3>
         <p className="text-mid-grey mb-4 leading-relaxed">
-          Pool management controls allow you to monitor and manage your pools. Additional
-          management features will be available in future updates.
+          When viewing a specific pool, you have access to the following management actions:
         </p>
+        <ul className="list-disc list-inside text-mid-grey space-y-2 mb-6">
+          <li><strong>Activate/Deactivate Pool:</strong> Control whether the pool is accepting new stakes. Only inactive pools can have rewards removed.</li>
+          <li><strong>Remove Rewards:</strong> Withdraw remaining rewards from an inactive pool. This action is only available when the pool is inactive.</li>
+          <li><strong>Add More Rewards:</strong> Fund additional rewards to extend the pool's duration. This increases the estimated end date based on the current APR and TVL.</li>
+          <li><strong>Update Metadata:</strong> Edit pool name, website URL, description, and tags to help users discover your pool.</li>
+        </ul>
+
+        <div className="border-2 border-amber/30 bg-amber/10 p-4 mb-6">
+          <p className="text-amber text-sm">
+            <strong>Rewards Exhausted:</strong> Pools automatically show a "Rewards Exhausted" badge when all rewards have been distributed. These pools cannot accept new stakes but existing stakers can still claim their accumulated rewards.
+          </p>
+        </div>
       </div>
     </div>
   );

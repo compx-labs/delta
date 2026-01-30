@@ -196,6 +196,7 @@ export class Staking extends Contract {
       args: [],
       fee: 0,
     }).returnValue;
+    assert(platformFeeResult.asUint64() <= 10_000, "Invalid platform fee");
     this.platform_fee_bps.value = platformFeeResult;
     this.contract_state.value = new Uint64(1);
   }
@@ -256,7 +257,10 @@ export class Staking extends Contract {
     }
 
     if (pending > 0) {
-      const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      if (fee > pending) {
+        fee = pending;
+      }
       const net: uint64 = pending - fee;
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
@@ -400,7 +404,10 @@ export class Staking extends Contract {
     }
 
     if (pending > 0) {
-      const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      if (fee > pending) {
+        fee = pending;
+      }
       const net: uint64 = pending - fee;
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
@@ -448,7 +455,10 @@ export class Staking extends Contract {
     }
 
     if (pending > 0) {
-      const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      if (fee > pending) {
+        fee = pending;
+      }
       const net: uint64 = pending - fee;
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
@@ -492,7 +502,10 @@ export class Staking extends Contract {
     }
 
     if (pending > 0) {
-      const fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
+      if (fee > pending) {
+        fee = pending;
+      }
       const net: uint64 = pending - fee;
       if (fee > 0) {
         this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);

@@ -20,14 +20,14 @@ export const OverviewSection: React.FC = () => {
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">What is Delta?</h3>
         <p className="text-mid-grey mb-4 leading-relaxed">
           Delta allows anyone to create staking pools where users can stake assets (single tokens or
-          liquidity pool tokens) to earn rewards. Pool creators can configure reward schedules,
-          set target APRs, and manage their pools through an intuitive interface.
+          liquidity pool tokens) to earn rewards. Pool creators set a fixed APR target, fund rewards up front,
+          and manage their pools through an intuitive interface.
         </p>
 
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Key Features</h3>
         <ul className="list-disc list-inside text-mid-grey space-y-2 mb-6">
           <li>Permissionless pool creation</li>
-          <li>Flexible reward schedules (fixed end date or target APR)</li>
+          <li>Fixed APR target-based pools (duration determined by reward funding)</li>
           <li>Support for single-asset and LP token staking</li>
           <li>Real-time APR calculations</li>
           <li>Comprehensive pool management tools</li>

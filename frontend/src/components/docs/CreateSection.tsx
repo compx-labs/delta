@@ -31,17 +31,17 @@ export const CreateSection: React.FC = () => {
 
         <h3 className="text-xl font-medium text-off-white mb-4 mt-8">Step 3: Rewards</h3>
         <p className="text-mid-grey mb-4 leading-relaxed">
-          Configure your reward schedule:
+          Configure your pool's reward parameters:
         </p>
         <ul className="list-disc list-inside text-mid-grey space-y-2 mb-4">
-          <li><strong>Total Rewards:</strong> The total amount of reward tokens to distribute</li>
+          <li><strong>Total Rewards:</strong> The total amount of reward tokens to distribute. Pool duration is determined by this amount and the APR target.</li>
           <li><strong>Start Time:</strong> Start immediately or schedule for later</li>
-          <li><strong>Target APR:</strong> The fixed APR that the pool will maintain</li>
+          <li><strong>Target APR:</strong> The fixed APR that the pool will maintain throughout its lifetime</li>
         </ul>
 
         <div className="border-2 border-amber/30 bg-amber/10 p-4 mb-6">
           <p className="text-amber text-sm">
-            <strong>Note:</strong> APR is fixed. Reward rates are updated dynamically based on TVL to maintain the target APR.
+            <strong>Note:</strong> APR is fixed at the target rate. Reward emission rates adjust automatically based on TVL to maintain the target APR. The pool runs until rewards are exhausted, and you can add more rewards at any time to extend the duration.
           </p>
         </div>
 
