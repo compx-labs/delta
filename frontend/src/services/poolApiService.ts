@@ -11,6 +11,7 @@ export interface CreatePoolData {
   total_rewards: number
   name: string
   created_by: string // Required, set from wallet
+  network: 'testnet' | 'mainnet' // Required, network where pool will be created
   website_url?: string
   description?: string
   tags?: string[]
@@ -19,6 +20,7 @@ export interface CreatePoolData {
 export interface Pool {
   id: string
   app_id: number | null
+  network: 'testnet' | 'mainnet'
   stake_token: string
   reward_token: string
   total_rewards: number
@@ -56,15 +58,17 @@ export async function createPool(data: CreatePoolData): Promise<Pool> {
 }
 
 /**
- * Get all pools
+ * Get all pools for a specific network
  */
-export async function getAllPools(): Promise<Pool[]> {
-  const response = await axios.get<Pool[]>(API_BASE_URL)
+export async function getAllPools(network: 'testnet' | 'mainnet'): Promise<Pool[]> {
+  const response = await axios.get<Pool[]>(API_BASE_URL, {
+    params: { network }
+  })
   return response.data
 }
 
 /**
- * Get pool by ID
+ * Get pool by ID (network is inferred from the pool's network field)
  */
 export async function getPoolById(id: string): Promise<Pool> {
   const response = await axios.get<Pool>(`${API_BASE_URL}/${id}`)
@@ -72,12 +76,14 @@ export async function getPoolById(id: string): Promise<Pool> {
 }
 
 /**
- * Get pool by app_id (on-chain application ID)
+ * Get pool by app_id (on-chain application ID) for a specific network
  * Returns null if pool is not found (404), throws for other errors
  */
-export async function getPoolByAppId(appId: number): Promise<Pool | null> {
+export async function getPoolByAppId(appId: number, network: 'testnet' | 'mainnet'): Promise<Pool | null> {
   try {
-    const response = await axios.get<Pool>(`${API_BASE_URL}/app/${appId}`)
+    const response = await axios.get<Pool>(`${API_BASE_URL}/app/${appId}`, {
+      params: { network }
+    })
     return response.data
   } catch (error) {
     // Handle 404 as "not found" - return null instead of throwing

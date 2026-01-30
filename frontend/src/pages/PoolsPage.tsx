@@ -59,9 +59,9 @@ export function PoolsPage() {
     data: poolMetadataMap = new Map(),
     isLoading: isLoadingMetadata 
   } = useQuery({
-    queryKey: ['poolMetadata'],
+    queryKey: ['poolMetadata', networkConfig.id],
     queryFn: async () => {
-      const pools = await getAllPools()
+      const pools = await getAllPools(networkConfig.id)
       // Create a map keyed by app_id for quick lookup
       const metadataMap = new Map<number, typeof pools[0]>()
       pools.forEach(pool => {

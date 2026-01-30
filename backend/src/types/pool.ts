@@ -3,6 +3,7 @@ export type CreationStatus = 'pending' | 'creating' | 'completed' | 'failed'
 export interface Pool {
   id: string
   app_id: number | null
+  network: 'testnet' | 'mainnet'
   stake_token: string
   reward_token: string
   total_rewards: number
@@ -25,6 +26,7 @@ export interface CreatePoolRequest {
   total_rewards: number
   name: string
   created_by: string // Now required, set from wallet
+  network: 'testnet' | 'mainnet' // Network where the pool will be created
   website_url?: string
   description?: string
   tags?: string[]
@@ -32,6 +34,7 @@ export interface CreatePoolRequest {
 
 export interface UpdatePoolRequest {
   app_id?: number
+  network?: 'testnet' | 'mainnet'
   name?: string
   website_url?: string
   description?: string

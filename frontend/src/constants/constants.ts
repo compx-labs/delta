@@ -6,7 +6,24 @@ export const NETWORK = import.meta.env.VITE_NETWORK || 'mainnet';
 export const IS_TESTNET = NETWORK === 'testnet';
 export const IS_DEVELOPMENT = import.meta.env.DEV;  
 export const NETWORK_TOKEN = import.meta.env.VITE_NETWORK_TOKEN;
+
+// Master repo app IDs (network-specific)
+export const MASTER_REPO_APP_ID_TESTNET = import.meta.env.VITE_MASTER_REPO_APP_TESTNET;
+export const MASTER_REPO_APP_ID_MAINNET = import.meta.env.VITE_MASTER_REPO_APP_MAINNET;
+
+// Legacy - keeping for backward compatibility during migration
 export const MASTER_REPO_APP_ID = import.meta.env.VITE_MASTER_REPO_APP;
+
+/**
+ * Get the master repo app ID for the specified network
+ * @param network - 'testnet' or 'mainnet'
+ * @returns The master repo app ID for the network, or undefined if not configured
+ */
+export function getMasterRepoAppId(network: 'testnet' | 'mainnet'): string | undefined {
+  return network === 'testnet' 
+    ? MASTER_REPO_APP_ID_TESTNET 
+    : MASTER_REPO_APP_ID_MAINNET;
+}
 
 // API Configuration  
 export const DELTA_BACKEND_URL = import.meta.env.VITE_DELTA_BACKEND_URL || 'http://localhost:3001/api';

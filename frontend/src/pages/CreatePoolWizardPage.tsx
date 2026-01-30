@@ -26,7 +26,7 @@ import {
   fundRewardsAndActivate,
   registerPool
 } from '../contracts/staking/user'
-import { MASTER_REPO_APP_ID } from '../constants/constants'
+import { getMasterRepoAppId } from '../constants/constants'
 import { useToast } from '../context/toastContext'
 import { getPoolById, getAllPools, type Pool } from '../services/poolApiService'
 
@@ -148,7 +148,8 @@ export function CreatePoolWizardPage() {
       return
     }
 
-    if (!MASTER_REPO_APP_ID) {
+    const masterRepoAppId = getMasterRepoAppId(networkConfig.id)
+    if (!masterRepoAppId) {
       setCreateError('Master repo app ID not configured')
       return
     }
@@ -176,7 +177,7 @@ export function CreatePoolWizardPage() {
       // Check database for any incomplete pools for this user
       // Match by user address and creation status
       try {
-        const allPools = await getAllPools()
+        const allPools = await getAllPools(networkConfig.id)
         const incompletePools = allPools.filter(
           (pool: Pool) =>
             pool.created_by === activeAccount.address &&
@@ -285,6 +286,7 @@ export function CreatePoolWizardPage() {
           total_rewards: rewardAmount,
           name: params.poolName,
           created_by: address, // Always use wallet address
+          network: networkConfig.id, // Include network for backend filtering
           website_url: params.websiteUrl || undefined,
           description: params.description || undefined,
           tags: tags && tags.length > 0 ? tags : undefined,
@@ -319,7 +321,7 @@ export function CreatePoolWizardPage() {
         poolAppId = await createPoolContract({
           address,
           signer,
-          masterRepoAppId: Number(MASTER_REPO_APP_ID),
+          masterRepoAppId: Number(masterRepoAppId),
           adminAddress: address,
         })
         console.log('Pool created with app ID:', poolAppId)
@@ -390,7 +392,7 @@ export function CreatePoolWizardPage() {
         await registerPool({
           address,
           signer,
-          masterRepoAppId: Number(MASTER_REPO_APP_ID),
+          masterRepoAppId: Number(masterRepoAppId),
           poolAppId: parseInt(poolAppId, 10),
         })
         console.log('Pool registered')

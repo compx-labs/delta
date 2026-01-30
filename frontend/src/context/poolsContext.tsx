@@ -6,7 +6,7 @@ import * as algokit from "@algorandfoundation/algokit-utils";
 import { MasterRepoClient } from "../contracts/staking/master_repoClient";
 import { StakingClient } from "../contracts/staking/stakingClient";
 import { useNetwork } from "./networkContext";
-import { MASTER_REPO_APP_ID, NETWORK_TOKEN, getAlgodServer } from "../constants/constants";
+import { getMasterRepoAppId, NETWORK_TOKEN, getAlgodServer } from "../constants/constants";
 
 /**
  * Global state information from a staking contract
@@ -179,7 +179,7 @@ export const PoolsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const network = networkConfig.id;
   
   // Fetch registered contract app IDs from master repo
-  const masterRepoAppId = MASTER_REPO_APP_ID ? Number(MASTER_REPO_APP_ID) : undefined;
+  const masterRepoAppId = getMasterRepoAppId(network) ? Number(getMasterRepoAppId(network)) : undefined;
   
   const {
     data: registeredAppIds = [],

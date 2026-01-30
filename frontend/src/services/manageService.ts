@@ -215,13 +215,14 @@ const mockManagePoolDetails: Record<string, ManagePoolDetail> = {
 
 export async function getPoolsCreatedBy(
   address: string,
+  network: 'testnet' | 'mainnet',
   poolStates?: Map<string, StakingPoolState>,
   assetInfoMap?: Map<string, { symbol: string; decimals?: number }>,
   registeredAppIds?: bigint[]
 ): Promise<ManagePoolListItem[]> {
   try {
     // Fetch pools from API and filter by creator address
-    const allPools = await getAllPools()
+    const allPools = await getAllPools(network)
     const userPools = allPools.filter(pool => pool.created_by === address)
     
     // Filter to only include pools that are registered in the registry contract

@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS pools (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   app_id BIGINT UNIQUE,
+  network VARCHAR(10) DEFAULT 'mainnet' CHECK (network IN ('testnet', 'mainnet')),
   stake_token VARCHAR(255) NOT NULL,
   reward_token VARCHAR(255) NOT NULL,
   total_rewards DECIMAL(20, 6) NOT NULL,
@@ -16,6 +17,12 @@ CREATE TABLE IF NOT EXISTS pools (
 
 -- Create index on app_id for fast lookups
 CREATE INDEX IF NOT EXISTS idx_pools_app_id ON pools(app_id);
+
+-- Create index on network for filtering
+CREATE INDEX IF NOT EXISTS idx_pools_network ON pools(network);
+
+-- Create composite index on network and app_id for efficient lookups
+CREATE INDEX IF NOT EXISTS idx_pools_network_app_id ON pools(network, app_id);
 
 -- Create index on stake_token and reward_token for filtering
 CREATE INDEX IF NOT EXISTS idx_pools_stake_token ON pools(stake_token);

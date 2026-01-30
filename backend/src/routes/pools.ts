@@ -27,6 +27,7 @@ router.post('/', async (req: Request, res: Response) => {
         total_rewards: data.total_rewards,
         name: data.name,
         created_by: data.created_by,
+        network: data.network,
         website_url: data.website_url || null,
         description: data.description || null,
         tags: data.tags || null,
@@ -59,9 +60,20 @@ router.post('/', async (req: Request, res: Response) => {
 // Get all pools
 router.get('/', async (req: Request, res: Response) => {
   try {
+    // Get network from query parameter (required)
+    const network = req.query.network as 'testnet' | 'mainnet' | undefined
+
+    if (!network || (network !== 'testnet' && network !== 'mainnet')) {
+      return res.status(400).json({
+        error: 'Network parameter is required',
+        details: 'Please provide ?network=testnet or ?network=mainnet'
+      })
+    }
+
     const { data: pools, error } = await supabase
       .from('pools')
       .select('*')
+      .eq('network', network)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -92,13 +104,24 @@ router.get('/app/:appId', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid app ID' })
     }
 
-    console.log(`[GET /pools/app/:appId] Looking up pool with app_id: ${appId} (type: ${typeof appId})`)
+    // Get network from query parameter (required)
+    const network = req.query.network as 'testnet' | 'mainnet' | undefined
 
-    // Try querying with the number first
+    if (!network || (network !== 'testnet' && network !== 'mainnet')) {
+      return res.status(400).json({
+        error: 'Network parameter is required',
+        details: 'Please provide ?network=testnet or ?network=mainnet'
+      })
+    }
+
+    console.log(`[GET /pools/app/:appId] Looking up pool with app_id: ${appId} on network: ${network}`)
+
+    // Query with both app_id and network
     let { data: pool, error } = await supabase
       .from('pools')
       .select('*')
       .eq('app_id', appId)
+      .eq('network', network)
       .single()
 
     // If not found, try querying as string (in case of type mismatch)
@@ -108,6 +131,7 @@ router.get('/app/:appId', async (req: Request, res: Response) => {
         .from('pools')
         .select('*')
         .eq('app_id', appIdParam)
+        .eq('network', network)
         .single()
       
       if (!errorStr && poolStr) {
@@ -119,13 +143,7 @@ router.get('/app/:appId', async (req: Request, res: Response) => {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.log(`[GET /pools/app/:appId] Pool not found for app_id: ${appId}`)
-        // Let's also check if there are any pools with similar app_ids for debugging
-        const { data: allPools } = await supabase
-          .from('pools')
-          .select('id, app_id, name')
-          .limit(10)
-        console.log(`[GET /pools/app/:appId] Sample pools in database:`, allPools)
+        console.log(`[GET /pools/app/:appId] Pool not found for app_id: ${appId} on network: ${network}`)
         return res.status(404).json({ error: 'Pool not found' })
       }
       console.error('[GET /pools/app/:appId] Database error:', error)
@@ -135,7 +153,7 @@ router.get('/app/:appId', async (req: Request, res: Response) => {
       })
     }
 
-    console.log(`[GET /pools/app/:appId] Found pool:`, { id: pool.id, app_id: pool.app_id, name: pool.name })
+    console.log(`[GET /pools/app/:appId] Found pool:`, { id: pool.id, app_id: pool.app_id, name: pool.name, network: pool.network })
     res.json(pool)
   } catch (error) {
     console.error('[GET /pools/app/:appId] Unexpected error:', error)

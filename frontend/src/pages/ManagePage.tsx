@@ -122,7 +122,7 @@ export function ManagePage() {
         } else {
           // Fetch pools list with pool states and asset info
           // Only show pools that are registered in the registry contract
-          const data = await getPoolsCreatedBy(activeAccount.address, poolStates, assetInfoMap, registeredAppIds)
+          const data = await getPoolsCreatedBy(activeAccount.address, networkConfig.id, poolStates, assetInfoMap, registeredAppIds)
           setPools(data)
         }
         prevDepsRef.current.hasData = true

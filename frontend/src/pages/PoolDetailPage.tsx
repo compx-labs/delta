@@ -339,13 +339,13 @@ export function PoolDetailPage() {
 
   // Fetch pool metadata from database
   const { data: poolMetadata, error: metadataError } = useQuery({
-    queryKey: ['poolMetadata', poolId],
+    queryKey: ['poolMetadata', poolId, networkConfig.id],
     queryFn: async () => {
       if (!poolId) return null
       const appId = Number(poolId)
       if (isNaN(appId)) return null
       // getPoolByAppId returns null for 404s, throws for other errors
-      return await getPoolByAppId(appId)
+      return await getPoolByAppId(appId, networkConfig.id)
     },
     enabled: !!poolId && !isNaN(Number(poolId)),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
