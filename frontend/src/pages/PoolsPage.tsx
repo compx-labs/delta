@@ -7,6 +7,7 @@ import { Footer } from '../components/Footer'
 import { PoolsTable } from '../components/PoolsTable'
 import { Dropdown } from '../components/Dropdown'
 import { AnimButton } from '../components/AnimButton'
+import { ProtocolStatsHeader } from '../components/ProtocolStatsHeader'
 import { usePools } from '../context/poolsContext'
 import { useNetwork } from '../context/networkContext'
 import { usePricing } from '../context/pricingContext'
@@ -185,6 +186,24 @@ export function PoolsPage() {
     return filtered
   }, [pools, filters])
 
+  // Calculate total TVL across all pools
+  const totalTVL = useMemo(() => {
+    return pools.reduce((sum, pool) => {
+      return sum + (pool.tvlUsd || 0)
+    }, 0)
+  }, [pools])
+
+  // Calculate total number of stakers across all pools
+  const totalStakers = useMemo(() => {
+    let total = 0
+    poolStates.forEach((state) => {
+      if (state.numStakers) {
+        total += Number(state.numStakers)
+      }
+    })
+    return total
+  }, [poolStates])
+
   const loading = isLoadingMasterRepo || isLoadingPools || isLoadingAssets || isLoadingMetadata
 
   const handleSelectPool = (id: string) => {
@@ -201,6 +220,13 @@ export function PoolsPage() {
   return (
     <div className="min-h-screen bg-near-black text-off-white">
       <AppNav />
+      
+      {/* Protocol Stats Header */}
+      <ProtocolStatsHeader 
+        protocolStatus="online"
+        totalTVL={totalTVL}
+        totalStakers={totalStakers}
+      />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { IoMdPlay } from 'react-icons/io'
+import { Tooltip } from './tooltip'
 import type { PoolListItem } from '../types/pool'
 
 interface PoolsTableProps {
@@ -33,12 +34,36 @@ export function PoolsTable({ pools, onSelectPool }: PoolsTableProps) {
       <table className="w-full">
         <thead>
           <tr className="border-b-2 border-mid-grey/30">
-            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Pool Name</th>
-            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Stake Token</th>
-            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Type</th>
-            <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">APR</th>
-            <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">Total Deposited</th>
-            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">Rewards</th>
+            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">
+              <Tooltip content="The name of the staking pool">
+                <span className="cursor-help">Pool Name</span>
+              </Tooltip>
+            </th>
+            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">
+              <Tooltip content="The asset token that can be staked in this pool">
+                <span className="cursor-help">Stake Token</span>
+              </Tooltip>
+            </th>
+            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">
+              <Tooltip content="Pool type: Single asset or LP (Liquidity Pool) token">
+                <span className="cursor-help">Type</span>
+              </Tooltip>
+            </th>
+            <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">
+              <Tooltip content="Annual Percentage Rate - the expected annual return for staking">
+                <span className="cursor-help">APR</span>
+              </Tooltip>
+            </th>
+            <th className="text-right px-4 py-3 text-xs text-mid-grey font-medium">
+              <Tooltip content="Total Value Locked - the total USD value of assets currently staked in this pool">
+                <span className="cursor-help">Total Deposited</span>
+              </Tooltip>
+            </th>
+            <th className="text-left px-4 py-3 text-xs text-mid-grey font-medium">
+              <Tooltip content="The reward token(s) distributed to stakers">
+                <span className="cursor-help">Rewards</span>
+              </Tooltip>
+            </th>
           </tr>
         </thead>
         <tbody>
