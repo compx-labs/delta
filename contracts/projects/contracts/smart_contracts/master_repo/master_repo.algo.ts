@@ -11,6 +11,7 @@ import {
   uint64,
   assert,
   assertMatch,
+  arc4,
 } from "@algorandfoundation/algorand-typescript";
 import { Address, abimethod, Uint64 } from "@algorandfoundation/algorand-typescript/arc4";
 import { Global } from "@algorandfoundation/algorand-typescript/op";
@@ -18,12 +19,17 @@ import { Global } from "@algorandfoundation/algorand-typescript/op";
 const REGISTRY_BOX_FEE: uint64 = 22_500;
 const MAX_BPS: uint64 = 10_000;
 
+
+
 @contract({ name: "master_repo", avmVersion: 11 })
 export class MasterRepo extends Contract {
-  registered_contracts = BoxMap<Application, Uint64>({ keyPrefix: "rc" });
+  registered_contracts = BoxMap<Application, uint64>({ keyPrefix: "rc" });
 
+  // admin of the master repo
   admin_address = GlobalState<Account>();
+  //super admin account that can make calls to registered contracts to withdraw platform fees.
   super_admin_address = GlobalState<Account>();
+
   platform_fee_bps = GlobalState<Uint64>();
 
   @abimethod({ allowActions: "NoOp", onCreate: "require" })
@@ -53,8 +59,10 @@ export class MasterRepo extends Contract {
     this.platform_fee_bps.value = new Uint64(platformFeeBps);
   }
 
+  //Contract type 1= staking, 2 = lending
   @abimethod({ allowActions: "NoOp" })
-  registerContract(app: Application, mbrTxn: gtxn.PaymentTxn): void {
+  registerContract(app: Application, mbrTxn: gtxn.PaymentTxn, contractType: uint64): void {
+    assert(op.Txn.sender === this.admin_address.value, "Only admin can register");
     assert(!this.registered_contracts(app).exists, "Already registered");
 
     assertMatch(mbrTxn, {
@@ -63,7 +71,7 @@ export class MasterRepo extends Contract {
       amount: REGISTRY_BOX_FEE,
     });
 
-    this.registered_contracts(app).value = new Uint64(1);
+    this.registered_contracts(app).value = contractType;
   }
 
   @abimethod({ allowActions: "NoOp" })

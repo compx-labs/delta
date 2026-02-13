@@ -214,12 +214,6 @@ export class Staking extends Contract {
   }
 
   @abimethod({ allowActions: "NoOp" })
-  updateSuperAdminAddress(superAdminAddress: Account): void {
-    assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can update super admin address");
-    this.super_admin_address.value = superAdminAddress;
-  }
-
-  @abimethod({ allowActions: "NoOp" })
   withdrawPlatformFees(receiver: Account): void {
     assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can withdraw fees");
     const accrued: uint64 = this.platform_fees_accrued.value.asUint64();
@@ -232,70 +226,6 @@ export class Staking extends Contract {
         assetReceiver: receiver,
         sender: Global.currentApplicationAddress,
         assetAmount: accrued,
-        fee: 0,
-      })
-      .submit();
-  }
-
-  @abimethod({ allowActions: "NoOp" })
-  emergencyWithdrawAsset(assetId: uint64, amount: uint64, receiver: Account): void {
-    assert(op.Txn.sender === this.super_admin_address.value, "Only super admin can withdraw");
-    assert(this.contract_state.value === new Uint64(0), "Pool must be inactive");
-    assert(this.stakers(receiver).exists, "No stake found for user");
-
-    const rec = clone(this.stakers(receiver).value);
-    const stakeNow: uint64 = rec.stake.asUint64();
-    assert(stakeNow > 0, "No stake");
-    assert(assetId === this.staked_asset_id.value.asUint64(), "Invalid asset");
-    assert(amount === stakeNow, "Amount mismatch");
-
-    const accrued = mulDivW(stakeNow, this.reward_per_token.value.asUint64(), PRECISION);
-    let pending: uint64 = accrued > rec.rewardDebt.asUint64() ? accrued - rec.rewardDebt.asUint64() : 0;
-    const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
-    if (pending > payable) {
-      pending = payable;
-    }
-
-    if (pending > 0) {
-      let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
-      if (fee > pending) {
-        fee = pending;
-      }
-      const net: uint64 = pending - fee;
-      if (fee > 0) {
-        this.platform_fees_accrued.value = new Uint64(this.platform_fees_accrued.value.asUint64() + fee);
-      }
-      this.rewards_paid.value = new Uint64(this.rewards_paid.value.asUint64() + pending);
-      itxn
-        .assetTransfer({
-          xferAsset: this.reward_asset_id.value.asUint64(),
-          assetReceiver: receiver,
-          sender: Global.currentApplicationAddress,
-          assetAmount: net,
-          fee: 0,
-        })
-        .submit();
-    }
-
-    itxn
-      .assetTransfer({
-        xferAsset: this.staked_asset_id.value.asUint64(),
-        assetReceiver: receiver,
-        sender: Global.currentApplicationAddress,
-        assetAmount: stakeNow,
-        fee: 0,
-      })
-      .submit();
-
-    this.total_staked.value = new Uint64(this.total_staked.value.asUint64() - stakeNow);
-    this.num_stakers.value = new Uint64(this.num_stakers.value.asUint64() - 1);
-    this.stakers(receiver).delete();
-
-    itxn
-      .payment({
-        receiver: receiver,
-        amount: BOX_FEE - 2000,
-        sender: Global.currentApplicationAddress,
         fee: 0,
       })
       .submit();
