@@ -8,6 +8,19 @@ import type { NetworkType } from "../../context/networkContext";
 
 const MAX_FEE = AlgoAmount.MicroAlgos(250_000);
 
+function toBaseUnits(amount: number, decimals: number): bigint {
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Invalid amount");
+  }
+
+  const decimalFactor = 10n ** BigInt(decimals);
+  const normalized = amount.toString().includes("e") ? amount.toFixed(decimals) : amount.toString();
+  const [whole, fraction = ""] = normalized.split(".");
+  const fractionScaled = fraction.padEnd(decimals, "0").slice(0, decimals);
+
+  return BigInt(whole || "0") * decimalFactor + BigInt(fractionScaled || "0");
+}
+
 // Get the current network from localStorage
 function getCurrentNetwork(): NetworkType {
   const stored = localStorage.getItem('delta-preferred-network');
@@ -242,7 +255,7 @@ export async function initPoolApr({
     const appClient = await getStakingClient(signer, address, appId);
     appClient.algorand.setDefaultSigner(signer);
 
-    const upscaledRewardAmount = Math.floor(rewardAmount * 10 ** rewardAssetDecimals);
+    const upscaledRewardAmount = toBaseUnits(rewardAmount, rewardAssetDecimals);
 
     // Create payment transaction for initial balance
     const initialBalanceTxn = appClient.algorand.createTransaction.payment({
@@ -259,7 +272,7 @@ export async function initPoolApr({
         args: {
           stakedAssetId: BigInt(stakedAssetId),
           rewardAssetId: BigInt(rewardAssetId),
-          rewardAmount: BigInt(upscaledRewardAmount),
+          rewardAmount: upscaledRewardAmount,
           aprBps: BigInt(aprBps),
           startTime: BigInt(startTime),
           duration: BigInt(duration),
@@ -297,14 +310,14 @@ export async function stake({
     const appClient = await getStakingClient(signer, address, appId);
     appClient.algorand.setDefaultSigner(signer);
 
-    const upscaledAmount = Math.floor(amount * 10 ** stakedAssetDecimals);
+    const upscaledAmount = toBaseUnits(amount, stakedAssetDecimals);
 
     // Create asset transfer transaction
     const stakeTxn = appClient.algorand.createTransaction.assetTransfer({
       sender: address,
       receiver: appClient.appAddress,
       assetId: BigInt(stakedAssetId),
-      amount: BigInt(upscaledAmount),
+      amount: upscaledAmount,
       note: "Staking assets",
       maxFee: MAX_FEE,
     });
@@ -322,7 +335,7 @@ export async function stake({
       .stake({
         args: {
           stakeTxn,
-          quantity: BigInt(upscaledAmount),
+          quantity: upscaledAmount,
           mbrTxn,
         },
         sender: address,
@@ -355,13 +368,13 @@ export async function unstake({
     const appClient = await getStakingClient(signer, address, appId);
     appClient.algorand.setDefaultSigner(signer);
 
-    const upscaledAmount = Math.floor(amount * 10 ** stakedAssetDecimals);
+    const upscaledAmount = toBaseUnits(amount, stakedAssetDecimals);
 
     const result = await appClient
       .newGroup()
       .unstake({
         args: {
-          quantity: BigInt(upscaledAmount),
+          quantity: upscaledAmount,
         },
         sender: address,
         maxFee: MAX_FEE,
@@ -394,14 +407,14 @@ export async function fundRewards({
     const appClient = await getStakingClient(signer, address, appId);
     appClient.algorand.setDefaultSigner(signer);
 
-    const upscaledRewardAmount = Math.floor(rewardAmount * 10 ** rewardAssetDecimals);
+    const upscaledRewardAmount = toBaseUnits(rewardAmount, rewardAssetDecimals);
 
     // Create asset transfer transaction for funding rewards
     const rewardFundingTxn = appClient.algorand.createTransaction.assetTransfer({
       sender: address,
       receiver: appClient.appAddress,
       assetId: BigInt(rewardAssetId),
-      amount: BigInt(upscaledRewardAmount),
+      amount: upscaledRewardAmount,
       note: "Funding rewards",
       maxFee: MAX_FEE,
     });
@@ -411,7 +424,7 @@ export async function fundRewards({
       .fundRewards({
         args: {
           rewardFundingTxn,
-          rewardAmount: BigInt(upscaledRewardAmount),
+          rewardAmount: upscaledRewardAmount,
         },
         sender: address,
         maxFee: MAX_FEE,
@@ -445,14 +458,14 @@ export async function fundMoreRewards({
     const appClient = await getStakingClient(signer, address, appId);
     appClient.algorand.setDefaultSigner(signer);
 
-    const upscaledRewardAmount = Math.floor(rewardAmount * 10 ** rewardAssetDecimals);
+    const upscaledRewardAmount = toBaseUnits(rewardAmount, rewardAssetDecimals);
 
     // Create asset transfer transaction for funding more rewards
     const rewardFundingTxn = appClient.algorand.createTransaction.assetTransfer({
       sender: address,
       receiver: appClient.appAddress,
       assetId: BigInt(rewardAssetId),
-      amount: BigInt(upscaledRewardAmount),
+      amount: upscaledRewardAmount,
       note: "Funding more rewards",
       maxFee: MAX_FEE,
     });
@@ -462,7 +475,7 @@ export async function fundMoreRewards({
       .fundMoreRewards({
         args: {
           rewardFundingTxn,
-          rewardAmount: BigInt(upscaledRewardAmount),
+          rewardAmount: upscaledRewardAmount,
         },
         sender: address,
         maxFee: MAX_FEE,
@@ -724,5 +737,4 @@ export async function claimRewards({
     throw error;
   }
 }
-
 

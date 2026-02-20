@@ -115,7 +115,13 @@ export function PoolDetailPanel({ poolId, onClose }: PoolDetailPanelProps) {
     // Calculate estimated rewards (since rewards only update on contract interaction)
     // Always use estimated rewards when we have pool state and user info
     const estimatedRewards = userStakingInfo && poolState
-      ? calculateEstimatedRewards(poolState, userStakingInfo)
+      ? calculateEstimatedRewards(
+          poolState,
+          userStakingInfo,
+          undefined,
+          stakedAssetInfo.decimals || 6,
+          rewardAssetInfo.decimals || 6
+        )
       : (userStakingInfo?.claimableRewards || BigInt(0))
     
     const claimableRewards = estimatedRewards > BigInt(0)

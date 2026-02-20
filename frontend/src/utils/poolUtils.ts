@@ -5,6 +5,7 @@ import type { StakingPoolState } from "../context/poolsContext";
 
 const PRECISION = BigInt(1_000_000_000_000_000); // PRECISION constant from contract (10^15)
 const SECONDS_PER_YEAR = BigInt(31_536_000); // Seconds in a year
+const pow10 = (decimals: number): bigint => 10n ** BigInt(decimals);
 
 /**
  * Creates a StakingClient instance for reading state (no signer needed)
@@ -79,7 +80,7 @@ export async function fetchUserStakingInfo(
  * Formats a bigint amount with decimals
  */
 export function formatAmount(amount: bigint, decimals: number = 6): string {
-  const divisor = BigInt(10 ** decimals);
+  const divisor = pow10(decimals);
   const whole = amount / divisor;
   const fraction = amount % divisor;
   
@@ -100,15 +101,20 @@ export function parseAmount(amount: string, decimals: number = 6): bigint {
   const parts = amount.split('.');
   const whole = parts[0] || '0';
   const fraction = (parts[1] || '').padEnd(decimals, '0').slice(0, decimals);
-  
-  return BigInt(whole) * BigInt(10 ** decimals) + BigInt(fraction);
+
+  return BigInt(whole) * pow10(decimals) + BigInt(fraction);
 }
 
 /**
  * Estimates the current rewardPerToken by simulating updatePool() call
  * This mirrors the contract's updatePool() logic
  */
-function estimateRewardPerToken(poolState: StakingPoolState, currentTimestamp: bigint): bigint {
+function estimateRewardPerToken(
+  poolState: StakingPoolState,
+  currentTimestamp: bigint,
+  stakedAssetDecimals: number = 6,
+  rewardAssetDecimals: number = 6
+): bigint {
   const startTime = poolState.startTime || BigInt(0);
   const endTime = poolState.endTime || BigInt(0);
   const lastUpdateTime = poolState.lastUpdateTime || BigInt(0);
@@ -148,13 +154,16 @@ function estimateRewardPerToken(poolState: StakingPoolState, currentTimestamp: b
   // Calculate duration since last update
   const duration = cappedTime - effectiveLast;
 
-  // Calculate reward rate from APR
-  // rewardRate = (totalStaked * aprBps / 10000) / SECONDS_PER_YEAR
-  const annualReward = (totalStaked * aprBps) / BigInt(10_000);
-  const rewardRate = annualReward / SECONDS_PER_YEAR;
+  // Convert staked units to reward-asset base units so APR math is unit-consistent.
+  const scaledTotalStaked =
+    rewardAssetDecimals >= stakedAssetDecimals
+      ? totalStaked * pow10(rewardAssetDecimals - stakedAssetDecimals)
+      : totalStaked / pow10(stakedAssetDecimals - rewardAssetDecimals);
+
+  const annualReward = (scaledTotalStaked * aprBps) / BigInt(10_000);
 
   // Calculate reward for this duration
-  let reward = duration * rewardRate;
+  let reward = (duration * annualReward) / SECONDS_PER_YEAR;
   
   // Cap reward by remaining rewards
   const remaining = totalRewards - accruedRewards;
@@ -186,7 +195,9 @@ function estimateRewardPerToken(poolState: StakingPoolState, currentTimestamp: b
 export function calculateEstimatedRewards(
   poolState: StakingPoolState,
   userStakingInfo: UserStakingInfo,
-  currentTimestamp?: bigint
+  currentTimestamp?: bigint,
+  stakedAssetDecimals: number = 6,
+  rewardAssetDecimals: number = 6
 ): bigint {
   // Use current timestamp if not provided
   const now = currentTimestamp || BigInt(Math.floor(Date.now() / 1000));
@@ -197,7 +208,7 @@ export function calculateEstimatedRewards(
   }
 
   // Estimate what rewardPerToken would be if updatePool() were called now
-  const estimatedRewardPerToken = estimateRewardPerToken(poolState, now);
+  const estimatedRewardPerToken = estimateRewardPerToken(poolState, now, stakedAssetDecimals, rewardAssetDecimals);
 
   // Calculate estimated accrued rewards: (stake * estimatedRewardPerToken / PRECISION)
   const estimatedAccrued = (userStakingInfo.stakedAmount * estimatedRewardPerToken) / PRECISION;

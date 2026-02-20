@@ -307,7 +307,8 @@ export function ManagePage() {
                   {poolDetail.app_id && poolStates.get(poolDetail.app_id.toString()) 
                     ? formatDate(calculateExpectedEndDate(
                         poolStates.get(poolDetail.app_id.toString())!,
-                        assetInfoMap.get(poolDetail.rewardAssets[0]?.id)?.decimals || 6
+                        assetInfoMap.get(poolDetail.rewardAssets[0]?.id)?.decimals || 6,
+                        assetInfoMap.get(poolDetail.stakeAsset?.id)?.decimals || 6
                       ))
                     : '--'}
                 </div>
@@ -964,4 +965,3 @@ function PoolMetadataEditor({ poolDetail, onSuccess }: PoolMetadataEditorProps) 
     </motion.div>
   )
 }
-

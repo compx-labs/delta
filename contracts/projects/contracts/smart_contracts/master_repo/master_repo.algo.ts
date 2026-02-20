@@ -18,7 +18,7 @@ import { Global } from "@algorandfoundation/algorand-typescript/op";
 
 const REGISTRY_BOX_FEE: uint64 = 22_500;
 const MAX_BPS: uint64 = 10_000;
-
+const CONTRACT_VERSION: uint64 = 3000;
 
 
 @contract({ name: "master_repo", avmVersion: 11 })
@@ -32,12 +32,15 @@ export class MasterRepo extends Contract {
 
   platform_fee_bps = GlobalState<Uint64>();
 
+  contract_version = GlobalState<Uint64>();
+
   @abimethod({ allowActions: "NoOp", onCreate: "require" })
   createApplication(adminAddress: Address, superAdminAddress: Address, platformFeeBps: uint64): void {
     assert(platformFeeBps <= MAX_BPS, "Invalid platform fee");
     this.admin_address.value = adminAddress.native;
     this.super_admin_address.value = superAdminAddress.native;
     this.platform_fee_bps.value = new Uint64(platformFeeBps);
+    this.contract_version.value = new Uint64(CONTRACT_VERSION);
   }
 
   @abimethod({ allowActions: "NoOp" })

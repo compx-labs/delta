@@ -11,7 +11,8 @@ const SECONDS_PER_YEAR = BigInt(31_536_000) // Seconds in a year
  */
 export function calculateExpectedEndDate(
   poolState: StakingPoolState | undefined,
-  rewardAssetDecimals: number = 6
+  rewardAssetDecimals: number = 6,
+  stakeAssetDecimals: number = 6
 ): string | null {
   if (!poolState) return null
 
@@ -44,8 +45,16 @@ export function calculateExpectedEndDate(
     return null
   }
 
-  // Calculate reward rate: (totalStaked * aprBps / 10000) / SECONDS_PER_YEAR
-  const annualReward = (totalStaked * aprBps) / BigInt(10_000)
+  const scale = rewardAssetDecimals >= stakeAssetDecimals
+    ? 10n ** BigInt(rewardAssetDecimals - stakeAssetDecimals)
+    : 1n
+  const scaleDen = rewardAssetDecimals >= stakeAssetDecimals
+    ? 1n
+    : 10n ** BigInt(stakeAssetDecimals - rewardAssetDecimals)
+  const scaledTotalStaked = (totalStaked * scale) / scaleDen
+
+  // Calculate reward rate in reward-asset base units.
+  const annualReward = (scaledTotalStaked * aprBps) / BigInt(10_000)
   const rewardRate = annualReward / SECONDS_PER_YEAR
 
   if (rewardRate === BigInt(0)) {
@@ -279,7 +288,8 @@ export async function getPoolsCreatedBy(
       // Calculate expected end date
       const rewardAssetInfo = assetInfoMap?.get(pool.reward_token)
       const rewardAssetDecimals = rewardAssetInfo?.decimals || 6
-      const expectedEndDate = calculateExpectedEndDate(poolState, rewardAssetDecimals)
+      const stakeAssetDecimals = assetInfoMap?.get(pool.stake_token)?.decimals || 6
+      const expectedEndDate = calculateExpectedEndDate(poolState, rewardAssetDecimals, stakeAssetDecimals)
 
       // Get stakers count
       const stakers = poolState?.numStakers 
@@ -382,7 +392,8 @@ export async function getManagePoolDetail(
     // Calculate expected end date
     const rewardAssetInfo = assetInfoMap?.get(pool.reward_token)
     const rewardAssetDecimals = rewardAssetInfo?.decimals || 6
-    const expectedEndDate = calculateExpectedEndDate(poolState, rewardAssetDecimals)
+    const stakeAssetDecimals = assetInfoMap?.get(pool.stake_token)?.decimals || 6
+    const expectedEndDate = calculateExpectedEndDate(poolState, rewardAssetDecimals, stakeAssetDecimals)
 
     // Get stakers count
     const stakers = poolState?.numStakers 
@@ -448,4 +459,3 @@ export async function getManagePoolDetail(
     return null
   }
 }
-

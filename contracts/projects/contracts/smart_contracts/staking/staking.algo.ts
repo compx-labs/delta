@@ -34,6 +34,10 @@ export class Staking extends Contract {
   reward_rate = GlobalState<Uint64>();
   start_time = GlobalState<Uint64>();
   last_update_time = GlobalState<Uint64>();
+  stake_asset_decimals = GlobalState<Uint64>();
+  reward_asset_decimals = GlobalState<Uint64>();
+  stake_to_reward_scale_num = GlobalState<Uint64>();
+  stake_to_reward_scale_den = GlobalState<Uint64>();
 
   total_rewards = GlobalState<Uint64>();
   accrued_rewards = GlobalState<Uint64>();
@@ -87,6 +91,11 @@ export class Staking extends Contract {
     const start: uint64 = startTime === 0 ? Global.latestTimestamp : startTime;
     const end: uint64 = start + duration;
     assert(end > start, "Invalid time range");
+    const [stakeDecimals, hasStakeDecimals] = op.AssetParams.assetDecimals(Asset(stakedAssetId));
+    assert(hasStakeDecimals, "Invalid staked asset");
+    const [rewardDecimals, hasRewardDecimals] = op.AssetParams.assetDecimals(Asset(rewardAssetId));
+    assert(hasRewardDecimals, "Invalid reward asset");
+    assert(stakeDecimals <= 19 && rewardDecimals <= 19, "Unsupported asset decimals");
 
     this.staked_asset_id.value = new Uint64(stakedAssetId);
     this.reward_asset_id.value = new Uint64(rewardAssetId);
@@ -101,6 +110,18 @@ export class Staking extends Contract {
     this.rewards_exhausted.value = new Uint64(0);
     this.rewards_paid.value = new Uint64(0);
     this.initialized.value = new Uint64(1);
+    this.stake_asset_decimals.value = new Uint64(stakeDecimals);
+    this.reward_asset_decimals.value = new Uint64(rewardDecimals);
+
+    if (rewardDecimals >= stakeDecimals) {
+      const diff: uint64 = rewardDecimals - stakeDecimals;
+      this.stake_to_reward_scale_num.value = new Uint64(this.pow10(diff));
+      this.stake_to_reward_scale_den.value = new Uint64(1);
+    } else {
+      const diff: uint64 = stakeDecimals - rewardDecimals;
+      this.stake_to_reward_scale_num.value = new Uint64(1);
+      this.stake_to_reward_scale_den.value = new Uint64(this.pow10(diff));
+    }
 
     assertMatch(initialBalanceTxn, {
       receiver: Global.currentApplicationAddress,
@@ -267,11 +288,16 @@ export class Staking extends Contract {
     }
 
     const duration: uint64 = cappedTime - effectiveLast;
-    let rewardRate: uint64 = this.reward_rate.value.asUint64();
-    const annualReward = mulDivW(this.total_staked.value.asUint64(), this.apr_bps.value.asUint64(), 10_000);
-    rewardRate = annualReward / SECONDS_PER_YEAR;
+    const scaledTotalStaked = mulDivW(
+      this.total_staked.value.asUint64(),
+      this.stake_to_reward_scale_num.value.asUint64(),
+      this.stake_to_reward_scale_den.value.asUint64(),
+    );
+    const annualReward = mulDivW(scaledTotalStaked, this.apr_bps.value.asUint64(), 10_000);
+    const rewardRate: uint64 = annualReward / SECONDS_PER_YEAR;
+    this.reward_rate.value = new Uint64(rewardRate);
 
-    let reward: uint64 = duration * rewardRate;
+    let reward: uint64 = mulDivW(duration, annualReward, SECONDS_PER_YEAR);
     const remaining: uint64 = this.total_rewards.value.asUint64() - this.accrued_rewards.value.asUint64();
     if (reward > remaining) {
       reward = remaining;
@@ -522,6 +548,16 @@ export class Staking extends Contract {
 
   @abimethod({ allowActions: "NoOp" })
   gas(): void {}
+
+  private pow10(exponent: uint64): uint64 {
+    let result: uint64 = 1;
+    let i: uint64 = 0;
+    while (i < exponent) {
+      result = result * 10;
+      i = i + 1;
+    }
+    return result;
+  }
 }
 
 export abstract class MasterRepoStub extends Contract {

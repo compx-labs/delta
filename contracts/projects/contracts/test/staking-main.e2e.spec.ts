@@ -31,6 +31,8 @@ const NUM_STAKERS = 5;
 const MAX_FEE = microAlgo(250_000);
 const PRECISION = 1_000_000_000_000_000n;
 const SECONDS_PER_YEAR = 31_536_000n;
+const STAKED_ASSET_DECIMALS = 6n;
+const REWARD_ASSET_DECIMALS = 6n;
 
 describe("staking pools Testing - main flow", () => {
   const localnet = algorandFixture();
@@ -71,8 +73,6 @@ describe("staking pools Testing - main flow", () => {
     const accruedRewards = state.accruedRewards || 0n;
     const totalRewards = state.totalRewards || 0n;
     const aprBps = state.aprBps || 0n;
-    const rewardRate = state.rewardRate || 0n;
-
     const cappedTime = nowTs;
     if (cappedTime <= start) {
       return {
@@ -99,11 +99,17 @@ describe("staking pools Testing - main flow", () => {
       };
     }
 
-    let currentRate = rewardRate;
-    const annualReward = (totalStaked * aprBps) / 10_000n;
-    currentRate = annualReward / SECONDS_PER_YEAR;
-
-    let reward = (cappedTime - effectiveLast) * currentRate;
+    const scale =
+      REWARD_ASSET_DECIMALS >= STAKED_ASSET_DECIMALS
+        ? 10n ** (REWARD_ASSET_DECIMALS - STAKED_ASSET_DECIMALS)
+        : 1n;
+    const scaleDen =
+      REWARD_ASSET_DECIMALS >= STAKED_ASSET_DECIMALS
+        ? 1n
+        : 10n ** (STAKED_ASSET_DECIMALS - REWARD_ASSET_DECIMALS);
+    const scaledTotalStaked = (totalStaked * scale) / scaleDen;
+    const annualReward = (scaledTotalStaked * aprBps) / 10_000n;
+    let reward = ((cappedTime - effectiveLast) * annualReward) / SECONDS_PER_YEAR;
     const remaining = totalRewards - accruedRewards;
     if (reward > remaining) reward = remaining;
 
@@ -150,7 +156,7 @@ describe("staking pools Testing - main flow", () => {
     const stakedAsset = await localnet.context.algorand.send.assetCreate({
       sender: poolAdmin.addr,
       total: 100_000_000_000n,
-      decimals: 6,
+      decimals: Number(STAKED_ASSET_DECIMALS),
       defaultFrozen: false,
       unitName: "STAKE",
       assetName: "Stake Token",
@@ -162,7 +168,7 @@ describe("staking pools Testing - main flow", () => {
     const rewardAsset = await localnet.context.algorand.send.assetCreate({
       sender: poolAdmin.addr,
       total: 50_000_000n,
-      decimals: 6,
+      decimals: Number(REWARD_ASSET_DECIMALS),
       defaultFrozen: false,
       unitName: "RWD",
       assetName: "Reward Token",
@@ -224,7 +230,7 @@ describe("staking pools Testing - main flow", () => {
     });
 
     await masterRepoClient.send.registerContract({
-      args: { app: stakingClient.appId, mbrTxn },
+      args: { app: stakingClient.appId, mbrTxn, contractType: 1n },
       maxFee: MAX_FEE,
       populateAppCallResources: true,
       coverAppCallInnerTransactionFees: true,
