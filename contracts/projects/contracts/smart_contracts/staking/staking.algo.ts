@@ -37,6 +37,7 @@ export class Staking extends Contract {
   accrued_rewards = GlobalState<Uint64>();
   rewards_exhausted = GlobalState<Uint64>();
   rewards_paid = GlobalState<Uint64>();
+  rewards_funded = GlobalState<Uint64>();
   initialized = GlobalState<Uint64>();
 
   admin_address = GlobalState<Account>();
@@ -57,6 +58,7 @@ export class Staking extends Contract {
     this.platform_fee_bps.value = new Uint64(0);
     this.platform_fees_accrued.value = new Uint64(0);
     this.rewards_paid.value = new Uint64(0);
+    this.rewards_funded.value = new Uint64(0);
     this.initialized.value = new Uint64(0);
     this.total_staked.value = new Uint64(0);
     this.num_stakers.value = new Uint64(0);
@@ -98,6 +100,7 @@ export class Staking extends Contract {
     this.platform_fees_accrued.value = new Uint64(0);
     this.rewards_exhausted.value = new Uint64(0);
     this.rewards_paid.value = new Uint64(0);
+    this.rewards_funded.value = new Uint64(0);
     this.initialized.value = new Uint64(1);
 
     assertMatch(initialBalanceTxn, {
@@ -140,6 +143,7 @@ export class Staking extends Contract {
       assetAmount: rewardAmount,
     });
     this.rewards_exhausted.value = new Uint64(0);
+    this.rewards_funded.value = new Uint64(1);
   }
 
   @abimethod({ allowActions: "NoOp" })
@@ -178,11 +182,15 @@ export class Staking extends Contract {
       })
       .submit();
     this.rewards_exhausted.value = new Uint64(1);
+    this.rewards_funded.value = new Uint64(0);
   }
 
   @abimethod({ allowActions: "NoOp" })
   setContractActive(): void {
     assert(op.Txn.sender === this.admin_address.value, "Only admin can set active");
+    assert(this.rewards_funded.value.asUint64() === 1, "Rewards not funded");
+    const requiredRewardBalance: uint64 = this.total_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
+    assert(this.availableRewardLiquidity() >= requiredRewardBalance, "Insufficient reward balance");
     const superAdminResult = abiCall({
       appId: this.master_repo_app.value,
       method: MasterRepoStub.prototype.getSuperAdminAddress,
@@ -337,6 +345,10 @@ export class Staking extends Contract {
     if (pending > payable) {
       pending = payable;
     }
+    const liquidRewards = this.availableRewardLiquidity();
+    if (pending > liquidRewards) {
+      pending = liquidRewards;
+    }
 
     if (pending > 0) {
       let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
@@ -388,6 +400,10 @@ export class Staking extends Contract {
     if (pending > payable) {
       pending = payable;
     }
+    const liquidRewards = this.availableRewardLiquidity();
+    if (pending > liquidRewards) {
+      pending = liquidRewards;
+    }
 
     if (pending > 0) {
       let fee: uint64 = mulDivW(pending, this.platform_fee_bps.value.asUint64(), 10_000);
@@ -434,6 +450,10 @@ export class Staking extends Contract {
     const payable: uint64 = this.accrued_rewards.value.asUint64() - this.rewards_paid.value.asUint64();
     if (pending > payable) {
       pending = payable;
+    }
+    const liquidRewards = this.availableRewardLiquidity();
+    if (pending > liquidRewards) {
+      pending = liquidRewards;
     }
 
     if (pending > 0) {
@@ -521,6 +541,19 @@ export class Staking extends Contract {
 
   @abimethod({ allowActions: "NoOp" })
   gas(): void {}
+
+  private availableRewardLiquidity(): uint64 {
+    const rewardBalance = op.AssetHolding.assetBalance(Global.currentApplicationAddress, Asset(this.reward_asset_id.value.asUint64()))[0];
+
+    let available: uint64 = rewardBalance;
+    if (this.reward_asset_id.value === this.staked_asset_id.value) {
+      const lockedStake: uint64 = this.total_staked.value.asUint64();
+      available = available > lockedStake ? available - lockedStake : 0;
+    }
+
+    const reservedPlatformFees: uint64 = this.platform_fees_accrued.value.asUint64();
+    return available > reservedPlatformFees ? available - reservedPlatformFees : 0;
+  }
 }
 
 export abstract class MasterRepoStub extends Contract {
