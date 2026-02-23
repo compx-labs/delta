@@ -30,7 +30,6 @@ const STAKE_AMOUNT = 10_000_000n;
 const NUM_STAKERS = 5;
 const MAX_FEE = microAlgo(250_000);
 const PRECISION = 1_000_000_000_000_000n;
-const SECONDS_PER_YEAR = 31_536_000n;
 const STAKED_ASSET_DECIMALS = 6n;
 const REWARD_ASSET_DECIMALS = 6n;
 
@@ -67,13 +66,23 @@ describe("staking pools Testing - main flow", () => {
 
   const updatePoolPreview = (state: Awaited<ReturnType<typeof stakingClient.state.global.getAll>>, nowTs: bigint) => {
     const start = state.startTime || 0n;
+    const end = state.endTime || 0n;
     const last = state.lastUpdateTime || 0n;
     const totalStaked = state.totalStaked || 0n;
     const rewardPerToken = state.rewardPerToken || 0n;
     const accruedRewards = state.accruedRewards || 0n;
     const totalRewards = state.totalRewards || 0n;
-    const aprBps = state.aprBps || 0n;
-    const cappedTime = nowTs;
+    const rewardsExhausted = state.rewardsExhausted || 0n;
+
+    if (rewardsExhausted === 1n) {
+      return {
+        rewardPerToken,
+        accruedRewards,
+        lastUpdateTime: nowTs,
+      };
+    }
+
+    const cappedTime = nowTs > end ? end : nowTs;
     if (cappedTime <= start) {
       return {
         rewardPerToken,
@@ -99,18 +108,10 @@ describe("staking pools Testing - main flow", () => {
       };
     }
 
-    const scale =
-      REWARD_ASSET_DECIMALS >= STAKED_ASSET_DECIMALS
-        ? 10n ** (REWARD_ASSET_DECIMALS - STAKED_ASSET_DECIMALS)
-        : 1n;
-    const scaleDen =
-      REWARD_ASSET_DECIMALS >= STAKED_ASSET_DECIMALS
-        ? 1n
-        : 10n ** (STAKED_ASSET_DECIMALS - REWARD_ASSET_DECIMALS);
-    const scaledTotalStaked = (totalStaked * scale) / scaleDen;
-    const annualReward = (scaledTotalStaked * aprBps) / 10_000n;
-    let reward = ((cappedTime - effectiveLast) * annualReward) / SECONDS_PER_YEAR;
     const remaining = totalRewards - accruedRewards;
+    const remainingTime = end - effectiveLast;
+    let reward = ((cappedTime - effectiveLast) * remaining) / remainingTime;
+    if (cappedTime === end) reward = remaining;
     if (reward > remaining) reward = remaining;
 
     if (reward === 0n) {
@@ -127,6 +128,120 @@ describe("staking pools Testing - main flow", () => {
       accruedRewards: accruedRewards + reward,
       lastUpdateTime: cappedTime,
     };
+  };
+
+  const initFundAndActivatePool = async (params: {
+    client: StakingClient;
+    stakedAssetId: bigint;
+    rewardAssetId: bigint;
+    rewardAmount: bigint;
+    startTime?: bigint;
+    endTime?: bigint;
+    activate?: boolean;
+  }) => {
+    const {
+      client,
+      stakedAssetId: stakeId,
+      rewardAssetId: rewardId,
+      rewardAmount,
+      startTime = 0n,
+      endTime,
+      activate = true,
+    } = params;
+    const resolvedEndTime = endTime ?? (await getLatestTimestamp()) + DURATION;
+
+    client.algorand.setSignerFromAccount(poolAdmin);
+
+    const initialBalanceTxn = client.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: client.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "initial mbr",
+      maxFee: MAX_FEE,
+    });
+
+    const rewardFundingTxn = client.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: client.appClient.appAddress,
+      assetId: rewardId,
+      amount: rewardAmount,
+      note: "reward funding",
+      maxFee: MAX_FEE,
+    });
+
+    await client.send.initApplication({
+      args: {
+        stakedAssetId: stakeId,
+        rewardAssetId: rewardId,
+        rewardAmount,
+        startTime,
+        endTime: resolvedEndTime,
+        initialBalanceTxn,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await client.send.fundRewards({
+      args: {
+        rewardFundingTxn,
+        rewardAmount,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    if (activate) {
+      await client.send.setContractActive({
+        args: {},
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      });
+    }
+  };
+
+  const stakeIntoPool = async (client: StakingClient, staker: Account, amount: bigint) => {
+    client.algorand.setSignerFromAccount(staker);
+
+    const stakeTxn = client.algorand.createTransaction.assetTransfer({
+      sender: staker.addr,
+      receiver: client.appClient.appAddress,
+      assetId: stakedAssetId,
+      amount,
+      note: "stake helper",
+      maxFee: MAX_FEE,
+    });
+
+    const mbrTxn = client.algorand.createTransaction.payment({
+      sender: staker.addr,
+      receiver: client.appClient.appAddress,
+      amount: microAlgo(BOX_FEE),
+      note: "box mbr helper",
+      maxFee: MAX_FEE,
+    });
+
+    await client.send.stake({
+      args: {
+        stakeTxn,
+        quantity: amount,
+        mbrTxn,
+      },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+  };
+
+  const waitUntilTimestamp = async (target: bigint, maxRounds = 300) => {
+    let rounds = 0;
+    while ((await getLatestTimestamp()) < target && rounds < maxRounds) {
+      await advanceRounds(1);
+      rounds += 1;
+    }
   };
 
   // -------------------------------------------------------------------------------------------------
@@ -195,15 +310,15 @@ describe("staking pools Testing - main flow", () => {
       note: "reward funding",
       maxFee: MAX_FEE,
     });
+    const endTime = (await getLatestTimestamp()) + DURATION;
 
     await stakingClient.send.initApplication({
       args: {
         stakedAssetId,
         rewardAssetId,
         rewardAmount: REWARD_AMOUNT,
-        aprBps: 10_200n,
         startTime: 0n,
-        duration: DURATION,
+        endTime,
         initialBalanceTxn,
       },
       coverAppCallInnerTransactionFees: true,
@@ -271,8 +386,6 @@ describe("staking pools Testing - main flow", () => {
 
   test("stake, accrue rewards, claim, and unstake", async () => {
     const globalState = await stakingClient.state.global.getAll();
-    expect(globalState.rewardRate).toEqual(0n);
-    expect(globalState.aprBps).toEqual(10_200n);
     expect(globalState.contractState).toEqual(1n);
     expect(globalState.totalStaked).toEqual(0n);
     expect(globalState.numStakers).toEqual(0n);
@@ -436,15 +549,15 @@ describe("staking pools Testing - main flow", () => {
       note: "reward funding - restake test",
       maxFee: MAX_FEE,
     });
+    const endTime = (await getLatestTimestamp()) + DURATION;
 
     await restakePool.send.initApplication({
       args: {
         stakedAssetId,
         rewardAssetId,
         rewardAmount: REWARD_AMOUNT,
-        aprBps: 10_200n,
         startTime: 0n,
-        duration: DURATION,
+        endTime,
         initialBalanceTxn,
       },
       coverAppCallInnerTransactionFees: true,
@@ -604,15 +717,15 @@ describe("staking pools Testing - main flow", () => {
       note: "reward funding - varied stakes",
       maxFee: MAX_FEE,
     });
+    const endTime = (await getLatestTimestamp()) + DURATION;
 
     await variedPool.send.initApplication({
       args: {
         stakedAssetId,
         rewardAssetId,
         rewardAmount: REWARD_AMOUNT,
-        aprBps: 10_200n,
         startTime: 0n,
-        duration: DURATION,
+        endTime,
         initialBalanceTxn,
       },
       coverAppCallInnerTransactionFees: true,
@@ -776,15 +889,15 @@ describe("staking pools Testing - main flow", () => {
       note: "reward funding - remove rewards",
       maxFee: MAX_FEE,
     });
+    const endTime = (await getLatestTimestamp()) + DURATION;
 
     await removePool.send.initApplication({
       args: {
         stakedAssetId,
         rewardAssetId,
         rewardAmount: REWARD_AMOUNT,
-        aprBps: 10_200n,
         startTime: 0n,
-        duration: DURATION,
+        endTime,
         initialBalanceTxn,
       },
       coverAppCallInnerTransactionFees: true,
@@ -828,5 +941,679 @@ describe("staking pools Testing - main flow", () => {
 
     const after = await getAssetBalance(adminAddr, rewardAssetId);
     expect(after - before).toEqual(REWARD_AMOUNT);
+  });
+
+  test("init rejects invalid time range and zero reward", async () => {
+    const invalidTimePool = await deploy(poolAdmin, masterRepoClient.appId);
+    invalidTimePool.algorand.setSignerFromAccount(poolAdmin);
+
+    const baseTs = await getLatestTimestamp();
+    const initialBalanceTxn = invalidTimePool.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: invalidTimePool.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "invalid time init mbr",
+      maxFee: MAX_FEE,
+    });
+
+    await expect(
+      invalidTimePool.send.initApplication({
+        args: {
+          stakedAssetId,
+          rewardAssetId,
+          rewardAmount: REWARD_AMOUNT,
+          startTime: baseTs + 10n,
+          endTime: baseTs + 10n,
+          initialBalanceTxn,
+        },
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    const zeroRewardPool = await deploy(poolAdmin, masterRepoClient.appId);
+    zeroRewardPool.algorand.setSignerFromAccount(poolAdmin);
+    const initialBalanceTxn2 = zeroRewardPool.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: zeroRewardPool.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "zero reward init mbr",
+      maxFee: MAX_FEE,
+    });
+
+    await expect(
+      zeroRewardPool.send.initApplication({
+        args: {
+          stakedAssetId,
+          rewardAssetId,
+          rewardAmount: 0n,
+          startTime: 0n,
+          endTime: baseTs + DURATION,
+          initialBalanceTxn: initialBalanceTxn2,
+        },
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+  });
+
+  test("before start has no accrual, end settles all rewards, and post-end stops accrual", async () => {
+    const boundaryPool = await deploy(poolAdmin, masterRepoClient.appId);
+    const now = await getLatestTimestamp();
+    const startTime = now + 120n;
+    const endTime = startTime + 120n;
+    await initFundAndActivatePool({
+      client: boundaryPool,
+      stakedAssetId,
+      rewardAssetId,
+      rewardAmount: REWARD_AMOUNT,
+      startTime,
+      endTime,
+      activate: true,
+    });
+
+    const staker = stakers[0];
+    await stakeIntoPool(boundaryPool, staker, STAKE_AMOUNT);
+
+    const stakerAddr = algosdk.encodeAddress(staker.addr.publicKey);
+    const rewardBefore = await getAssetBalance(stakerAddr, rewardAssetId);
+    boundaryPool.algorand.setSignerFromAccount(staker);
+    await boundaryPool.send.claimRewards({
+      args: {},
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const rewardAfterBeforeStart = await getAssetBalance(stakerAddr, rewardAssetId);
+    expect(rewardAfterBeforeStart).toEqual(rewardBefore);
+
+    const stateBeforeStart = await boundaryPool.state.global.getAll();
+    expect(stateBeforeStart.accruedRewards).toEqual(0n);
+
+    await waitUntilTimestamp(endTime + 1n);
+
+    boundaryPool.algorand.setSignerFromAccount(staker);
+    await boundaryPool.send.claimRewards({
+      args: {},
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const stateAtEnd = await boundaryPool.state.global.getAll();
+    expect(stateAtEnd.accruedRewards).toEqual(stateAtEnd.totalRewards);
+    expect(stateAtEnd.rewardsExhausted).toEqual(1n);
+
+    const accruedAtEnd = stateAtEnd.accruedRewards ?? 0n;
+    await advanceRounds(5);
+    await boundaryPool.send.claimRewards({
+      args: {},
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const stateAfterEnd = await boundaryPool.state.global.getAll();
+    expect(stateAfterEnd.accruedRewards).toEqual(accruedAtEnd);
+  });
+
+  test("fundMoreRewards works in-period and fails after end", async () => {
+    const topupPool = await deploy(poolAdmin, masterRepoClient.appId);
+    const now = await getLatestTimestamp();
+    const endTime = now + 160n;
+    await initFundAndActivatePool({
+      client: topupPool,
+      stakedAssetId,
+      rewardAssetId,
+      rewardAmount: REWARD_AMOUNT,
+      startTime: 0n,
+      endTime,
+      activate: true,
+    });
+
+    const topUpAmount = 250_000n;
+    topupPool.algorand.setSignerFromAccount(poolAdmin);
+    const topUpTxn = topupPool.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: topupPool.appClient.appAddress,
+      assetId: rewardAssetId,
+      amount: topUpAmount,
+      note: "topup",
+      maxFee: MAX_FEE,
+    });
+    await topupPool.send.fundMoreRewards({
+      args: {
+        rewardFundingTxn: topUpTxn,
+        rewardAmount: topUpAmount,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const afterTopUp = await topupPool.state.global.getAll();
+    expect(afterTopUp.totalRewards).toEqual(REWARD_AMOUNT + topUpAmount);
+
+    await waitUntilTimestamp(endTime + 1n);
+
+    const lateTopUpTxn = topupPool.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: topupPool.appClient.appAddress,
+      assetId: rewardAssetId,
+      amount: 1n,
+      note: "late topup",
+      maxFee: MAX_FEE,
+    });
+    await expect(
+      topupPool.send.fundMoreRewards({
+        args: {
+          rewardFundingTxn: lateTopUpTxn,
+          rewardAmount: 1n,
+        },
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+  });
+
+  test("fundRewards amount mismatch fails", async () => {
+    const mismatchPool = await deploy(poolAdmin, masterRepoClient.appId);
+    mismatchPool.algorand.setSignerFromAccount(poolAdmin);
+    const endTime = (await getLatestTimestamp()) + DURATION;
+
+    const initialBalanceTxn = mismatchPool.algorand.createTransaction.payment({
+      sender: poolAdmin.addr,
+      receiver: mismatchPool.appClient.appAddress,
+      amount: microAlgo(INITIAL_PAY_AMOUNT),
+      note: "mismatch init mbr",
+      maxFee: MAX_FEE,
+    });
+    await mismatchPool.send.initApplication({
+      args: {
+        stakedAssetId,
+        rewardAssetId,
+        rewardAmount: REWARD_AMOUNT,
+        startTime: 0n,
+        endTime,
+        initialBalanceTxn,
+      },
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const fundingTxn = mismatchPool.algorand.createTransaction.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: mismatchPool.appClient.appAddress,
+      assetId: rewardAssetId,
+      amount: REWARD_AMOUNT - 1n,
+      note: "mismatch funding",
+      maxFee: MAX_FEE,
+    });
+    await expect(
+      mismatchPool.send.fundRewards({
+        args: {
+          rewardFundingTxn: fundingTxn,
+          rewardAmount: REWARD_AMOUNT - 1n,
+        },
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+  });
+
+  test("setContractInactive blocks stake/claim and allows unstake", async () => {
+    const inactivePool = await deploy(poolAdmin, masterRepoClient.appId);
+    await initFundAndActivatePool({
+      client: inactivePool,
+      stakedAssetId,
+      rewardAssetId,
+      rewardAmount: REWARD_AMOUNT,
+      activate: true,
+    });
+
+    const staker = stakers[1];
+    await stakeIntoPool(inactivePool, staker, STAKE_AMOUNT);
+
+    inactivePool.algorand.setSignerFromAccount(poolAdmin);
+    await inactivePool.send.setContractInactive({
+      args: {},
+      sender: poolAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    inactivePool.algorand.setSignerFromAccount(staker);
+    await expect(
+      inactivePool.send.claimRewards({
+        args: {},
+        sender: staker.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    const stakeTxn = inactivePool.algorand.createTransaction.assetTransfer({
+      sender: staker.addr,
+      receiver: inactivePool.appClient.appAddress,
+      assetId: stakedAssetId,
+      amount: 1n,
+      note: "inactive stake",
+      maxFee: MAX_FEE,
+    });
+    const mbrTxn = inactivePool.algorand.createTransaction.payment({
+      sender: staker.addr,
+      receiver: inactivePool.appClient.appAddress,
+      amount: microAlgo(BOX_FEE),
+      note: "inactive mbr",
+      maxFee: MAX_FEE,
+    });
+    await expect(
+      inactivePool.send.stake({
+        args: { stakeTxn, quantity: 1n, mbrTxn },
+        sender: staker.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    await inactivePool.send.unstake({
+      args: { quantity: 0n },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const after = await inactivePool.state.global.getAll();
+    expect(after.totalStaked).toEqual(0n);
+  });
+
+  test("admin update + withdrawPlatformFees and access controls", async () => {
+    const adminPool = await deploy(poolAdmin, masterRepoClient.appId);
+    await initFundAndActivatePool({
+      client: adminPool,
+      stakedAssetId,
+      rewardAssetId,
+      rewardAmount: REWARD_AMOUNT,
+      activate: true,
+    });
+
+    const newAdmin = await localnet.context.generateAccount({ initialFunds: microAlgo(5_000_000) });
+    const outsider = await localnet.context.generateAccount({ initialFunds: microAlgo(5_000_000) });
+    const outsiderAddr = algosdk.encodeAddress(outsider.addr.publicKey);
+
+    adminPool.algorand.setSignerFromAccount(outsider);
+    await expect(
+      adminPool.send.setContractActive({
+        args: {},
+        sender: outsider.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    adminPool.algorand.setSignerFromAccount(poolAdmin);
+    await adminPool.send.updateAdminAddress({
+      args: { adminAddress: newAdmin.addr.toString() },
+      sender: poolAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await expect(
+      adminPool.send.setContractInactive({
+        args: {},
+        sender: poolAdmin.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    adminPool.algorand.setSignerFromAccount(newAdmin);
+    await adminPool.send.setContractInactive({
+      args: {},
+      sender: newAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await adminPool.send.setContractActive({
+      args: {},
+      sender: newAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const staker = stakers[2];
+    await stakeIntoPool(adminPool, staker, STAKE_AMOUNT);
+    await advanceRounds(8);
+    adminPool.algorand.setSignerFromAccount(staker);
+    await adminPool.send.claimRewards({
+      args: {},
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    adminPool.algorand.setSignerFromAccount(outsider);
+    await expect(
+      adminPool.send.withdrawPlatformFees({
+        args: { receiver: outsiderAddr },
+        sender: outsider.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    localnet.algorand.setSignerFromAccount(platformSuperAdmin);
+    await localnet.algorand.send.assetOptIn({
+      sender: platformSuperAdmin.addr,
+      assetId: rewardAssetId,
+    });
+    const superAdminAddr = algosdk.encodeAddress(platformSuperAdmin.addr.publicKey);
+    const before = await getAssetBalance(superAdminAddr, rewardAssetId);
+    adminPool.algorand.setSignerFromAccount(platformSuperAdmin);
+    const globalBefore = await adminPool.state.global.getAll();
+    const fees = globalBefore.platformFeesAccrued ?? 0n;
+    expect(fees).toBeGreaterThan(0n);
+    await adminPool.send.withdrawPlatformFees({
+      args: { receiver: superAdminAddr },
+      sender: platformSuperAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const after = await getAssetBalance(superAdminAddr, rewardAssetId);
+    expect(after - before).toEqual(fees);
+    const globalAfter = await adminPool.state.global.getAll();
+    expect(globalAfter.platformFeesAccrued).toEqual(0n);
+  });
+
+  test("deleteApplication guards and success path", async () => {
+    const guardPool = await deploy(poolAdmin, masterRepoClient.appId);
+    await initFundAndActivatePool({
+      client: guardPool,
+      stakedAssetId,
+      rewardAssetId,
+      rewardAmount: REWARD_AMOUNT,
+      activate: true,
+    });
+    const staker = stakers[3];
+    await stakeIntoPool(guardPool, staker, STAKE_AMOUNT);
+
+    guardPool.algorand.setSignerFromAccount(platformSuperAdmin);
+    await expect(
+      guardPool.send.delete.deleteApplication({
+        args: {},
+        sender: platformSuperAdmin.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      }),
+    ).rejects.toThrowError();
+
+    guardPool.algorand.setSignerFromAccount(staker);
+    await guardPool.send.unstake({
+      args: { quantity: 0n },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    guardPool.algorand.setSignerFromAccount(poolAdmin);
+    await guardPool.send.setContractInactive({
+      args: {},
+      sender: poolAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    await guardPool.send.removeRewards({
+      args: {},
+      sender: poolAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const feeReceiver = await localnet.context.generateAccount({ initialFunds: microAlgo(2_000_000) });
+    localnet.algorand.setSignerFromAccount(feeReceiver);
+    await localnet.algorand.send.assetOptIn({
+      sender: feeReceiver.addr,
+      assetId: rewardAssetId,
+    });
+    const guardState = await guardPool.state.global.getAll();
+    const feesAccrued = guardState.platformFeesAccrued ?? 0n;
+    if (feesAccrued > 0n) {
+      guardPool.algorand.setSignerFromAccount(platformSuperAdmin);
+      await guardPool.send.withdrawPlatformFees({
+        args: { receiver: feeReceiver.addr.toString() },
+        sender: platformSuperAdmin.addr,
+        coverAppCallInnerTransactionFees: true,
+        populateAppCallResources: true,
+        maxFee: MAX_FEE,
+      });
+    }
+
+    guardPool.algorand.setSignerFromAccount(platformSuperAdmin);
+    await guardPool.send.delete.deleteApplication({
+      args: {},
+      sender: platformSuperAdmin.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+  });
+
+  test("single-asset staking path (stake and reward asset same)", async () => {
+    const sameAssetPool = await deploy(poolAdmin, masterRepoClient.appId);
+    await initFundAndActivatePool({
+      client: sameAssetPool,
+      stakedAssetId,
+      rewardAssetId: stakedAssetId,
+      rewardAmount: 1_000_000n,
+      activate: true,
+    });
+
+    const staker = await localnet.context.generateAccount({ initialFunds: microAlgo(8_000_000) });
+    localnet.algorand.setSignerFromAccount(staker);
+    await localnet.algorand.send.assetOptIn({ sender: staker.addr, assetId: stakedAssetId });
+    localnet.algorand.setSignerFromAccount(poolAdmin);
+    await localnet.algorand.send.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: staker.addr,
+      assetId: stakedAssetId,
+      amount: STAKE_AMOUNT,
+      note: "fund same asset staker",
+    });
+
+    sameAssetPool.algorand.setSignerFromAccount(staker);
+    const stakeTxn = sameAssetPool.algorand.createTransaction.assetTransfer({
+      sender: staker.addr,
+      receiver: sameAssetPool.appClient.appAddress,
+      assetId: stakedAssetId,
+      amount: STAKE_AMOUNT,
+      note: "same stake",
+      maxFee: MAX_FEE,
+    });
+    const mbrTxn = sameAssetPool.algorand.createTransaction.payment({
+      sender: staker.addr,
+      receiver: sameAssetPool.appClient.appAddress,
+      amount: microAlgo(BOX_FEE),
+      note: "same mbr",
+      maxFee: MAX_FEE,
+    });
+    await sameAssetPool.send.stake({
+      args: { stakeTxn, quantity: STAKE_AMOUNT, mbrTxn },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await advanceRounds(10);
+    const stakerAddr = algosdk.encodeAddress(staker.addr.publicKey);
+    const before = await getAssetBalance(stakerAddr, stakedAssetId);
+    await sameAssetPool.send.claimRewards({
+      args: {},
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const after = await getAssetBalance(stakerAddr, stakedAssetId);
+    expect(after).toBeGreaterThan(before);
+  });
+
+  test("invariants: rewardsPaid accounting and bounds", async () => {
+    const invariantPool = await deploy(poolAdmin, masterRepoClient.appId);
+    await initFundAndActivatePool({
+      client: invariantPool,
+      stakedAssetId,
+      rewardAssetId,
+      rewardAmount: REWARD_AMOUNT,
+      activate: true,
+    });
+
+    const a = stakers[0];
+    const b = stakers[1];
+    const aAddr = algosdk.encodeAddress(a.addr.publicKey);
+    const bAddr = algosdk.encodeAddress(b.addr.publicKey);
+    const aBefore = await getAssetBalance(aAddr, rewardAssetId);
+    const bBefore = await getAssetBalance(bAddr, rewardAssetId);
+
+    await stakeIntoPool(invariantPool, a, STAKE_AMOUNT);
+    await stakeIntoPool(invariantPool, b, STAKE_AMOUNT / 2n);
+    await advanceRounds(15);
+
+    invariantPool.algorand.setSignerFromAccount(a);
+    await invariantPool.send.claimRewards({
+      args: {},
+      sender: a.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    invariantPool.algorand.setSignerFromAccount(b);
+    await invariantPool.send.claimRewards({
+      args: {},
+      sender: b.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    const aAfter = await getAssetBalance(aAddr, rewardAssetId);
+    const bAfter = await getAssetBalance(bAddr, rewardAssetId);
+    const netPaid = (aAfter - aBefore) + (bAfter - bBefore);
+    const global = await invariantPool.state.global.getAll();
+
+    const paid = global.rewardsPaid ?? 0n;
+    const fees = global.platformFeesAccrued ?? 0n;
+    const accrued = global.accruedRewards ?? 0n;
+    const total = global.totalRewards ?? 0n;
+
+    expect(netPaid + fees).toEqual(paid);
+    expect(paid).toBeLessThanOrEqual(accrued);
+    expect(accrued).toBeLessThanOrEqual(total);
+  });
+
+  test("6 decimal stake and 8 decimal reward asset flow", async () => {
+    const stake6 = await localnet.context.algorand.send.assetCreate({
+      sender: poolAdmin.addr,
+      total: 2_000_000_000_000n,
+      decimals: 6,
+      defaultFrozen: false,
+      unitName: "S6",
+      assetName: "Stake 6",
+      manager: poolAdmin.addr,
+      reserve: poolAdmin.addr,
+    });
+    const reward8 = await localnet.context.algorand.send.assetCreate({
+      sender: poolAdmin.addr,
+      total: 2_000_000_000_000n,
+      decimals: 8,
+      defaultFrozen: false,
+      unitName: "R8",
+      assetName: "Reward 8",
+      manager: poolAdmin.addr,
+      reserve: poolAdmin.addr,
+    });
+
+    const decimalPool = await deploy(poolAdmin, masterRepoClient.appId);
+    await initFundAndActivatePool({
+      client: decimalPool,
+      stakedAssetId: stake6.assetId,
+      rewardAssetId: reward8.assetId,
+      rewardAmount: 500_000_000n,
+      activate: true,
+    });
+
+    const staker = await localnet.context.generateAccount({ initialFunds: microAlgo(8_000_000) });
+    localnet.algorand.setSignerFromAccount(staker);
+    await localnet.algorand.send.assetOptIn({ sender: staker.addr, assetId: stake6.assetId });
+    await localnet.algorand.send.assetOptIn({ sender: staker.addr, assetId: reward8.assetId });
+
+    localnet.algorand.setSignerFromAccount(poolAdmin);
+    await localnet.algorand.send.assetTransfer({
+      sender: poolAdmin.addr,
+      receiver: staker.addr,
+      assetId: stake6.assetId,
+      amount: 50_000_000n,
+      note: "fund 6-dec stake token",
+    });
+
+    decimalPool.algorand.setSignerFromAccount(staker);
+    const stakeTxn = decimalPool.algorand.createTransaction.assetTransfer({
+      sender: staker.addr,
+      receiver: decimalPool.appClient.appAddress,
+      assetId: stake6.assetId,
+      amount: 50_000_000n,
+      note: "stake 6/8",
+      maxFee: MAX_FEE,
+    });
+    const mbrTxn = decimalPool.algorand.createTransaction.payment({
+      sender: staker.addr,
+      receiver: decimalPool.appClient.appAddress,
+      amount: microAlgo(BOX_FEE),
+      note: "mbr 6/8",
+      maxFee: MAX_FEE,
+    });
+    await decimalPool.send.stake({
+      args: { stakeTxn, quantity: 50_000_000n, mbrTxn },
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+
+    await advanceRounds(12);
+    const stakerAddr = algosdk.encodeAddress(staker.addr.publicKey);
+    const rewardBefore = await getAssetBalance(stakerAddr, reward8.assetId);
+    await decimalPool.send.claimRewards({
+      args: {},
+      sender: staker.addr,
+      coverAppCallInnerTransactionFees: true,
+      populateAppCallResources: true,
+      maxFee: MAX_FEE,
+    });
+    const rewardAfter = await getAssetBalance(stakerAddr, reward8.assetId);
+    expect(rewardAfter).toBeGreaterThan(rewardBefore);
   });
 });
