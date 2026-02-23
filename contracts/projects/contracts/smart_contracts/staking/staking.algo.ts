@@ -496,12 +496,6 @@ export class Staking extends Contract {
     assert(this.total_staked.value.asUint64() === 0, "Staked assets still exist");
     assert(this.num_stakers.value.asUint64() === 0, "Stakers exist");
 
-    const stakedBalance = op.AssetHolding.assetBalance(Global.currentApplicationAddress, Asset(this.staked_asset_id.value.asUint64()))[0];
-    assert(stakedBalance === 0, "Staked asset balance not empty");
-
-    const rewardBalance = op.AssetHolding.assetBalance(Global.currentApplicationAddress, Asset(this.reward_asset_id.value.asUint64()))[0];
-    assert(rewardBalance === 0, "Reward asset balance not empty");
-
     itxn
       .assetTransfer({
         xferAsset: this.staked_asset_id.value.asUint64(),
